@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from models.user import User
-from auth.schemas.auth import CreateUserRequest, UserSchemaPost, Token
+from app.auth.models.user_model import User
+from app.auth.schemas.auth_schemas import CreateUserRequest, UserSchemaPost, Token
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 
