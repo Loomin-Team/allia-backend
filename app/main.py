@@ -1,3 +1,4 @@
+
 import os
 import uvicorn
 from app.config.db import SessionLocal, create_all_tables
@@ -9,9 +10,9 @@ try:
     create_all_tables()
 except Exception as e:
     raise HTTPException(status_code=500, detail=f"Error al crear tablas: {e}")
- 
 
 app = FastAPI()
+
 
 app.include_router(routes)
 
