@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+import os
 from app.auth.schemas.auth_schemas import Token, UserSchemaPost, CreateUserRequest
 from app.auth.services.auth_services import AuthServices
 from app.config.db import get_db
-from datetime import timedelta
 
 auth = APIRouter()
 
-SECRET_KEY = '197b2c371eas312ze#@1ssdsasd1123'
-ALGORITHM = 'HS256'
+SECRET_KEY = os.getenv('SECRET_KEY')  # Ya no se necesita hardcodear
+ALGORITHM = os.getenv('ALGORITHM')
 
 endpoint = "/auth"
 
