@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
@@ -6,8 +8,11 @@ from app.auth.schemas.auth_schemas import CreateUserRequest, UserSchemaPost, Tok
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 
-SECRET_KEY = '197b2c371eas312ze#@1ssdsasd1123'
-ALGORITHM = 'HS256'
+# Cargar variables de entorno
+load_dotenv()
+
+SECRET_KEY = os.getenv('SECRET_KEY')
+ALGORITHM = os.getenv('ALGORITHM')
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

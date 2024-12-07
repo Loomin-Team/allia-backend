@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.subscription.routes.subscription_router import subscriptions
-from app.auth.routes.auth_router import auth
+from app.auth.routes.auth_routes import auth
 
 from app.config.routes import prefix
 routes = APIRouter()

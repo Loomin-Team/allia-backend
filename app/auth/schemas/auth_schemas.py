@@ -13,13 +13,3 @@ class UserSchemaPost(BaseModel):
     username: str
     email: EmailStr
     password: str
-
-class UserSchemaResponse(BaseModel):
-    id: int
-    fullname: str
-    username: str
-    email: EmailStr
-    registered: bool
-
-    class Config:
-        orm_mode = True
