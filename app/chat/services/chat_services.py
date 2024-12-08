@@ -177,4 +177,11 @@ class ChatService:
                 
         except Exception as e:
             return {"status": "error", "message": "An error occurred", "details": str(e)}
-        
+
+    @staticmethod
+    def create_reply(entry: str, chat_id: str, db: requests.Session):
+        pass
+
+    @staticmethod
+    def get_chat_history(chat_id: str, db: requests.Session):
+        pass
