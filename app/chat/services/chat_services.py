@@ -1,27 +1,17 @@
+from datetime import datetime
 import os
 import requests
 import json
 
 from sqlalchemy import null
 
+from app.chat.models.chat_model import Chat
 from app.chat.models.corpus_model import Corpus
+from app.chat.schemas.chat_schema import ChatRequest
 
 class ChatService:
     @staticmethod
     def create_corpus(db: requests.Session):
-        """
-        Creates a new corpus in Vectara and returns the corpus key.
-
-        Args:
-            db (requests.Session): The database session.
-
-        Returns:
-            str: The corpus key of the newly created corpus.
-
-        Raises:
-            Exception: If the API call fails or the corpus key is not returned.
-        """
-        
         new_corpus = Corpus()
 
         db.add(new_corpus)
@@ -104,12 +94,13 @@ class ChatService:
             return {"status": "error", "message": "An error occurred", "details": str(e)}
         
     @staticmethod
-    def create_chat(entry: str, corpus_key: str):
+    def create_chat(chat: ChatRequest, corpus_key: str, db: requests.Session):
+        
         try:
             url = "https://api.vectara.io/v2/chats"
 
             payload = json.dumps({
-            "query": entry,
+            "query": chat.entry,
             "search": {
                 "corpora": [
                 {
@@ -169,12 +160,29 @@ class ChatService:
             }
 
             response = requests.request("POST", url, headers=headers, data=payload)
-
+            
             if response.status_code in [200, 201]:
-                return {"status": "success", "message": "Chat created successfully", "data": response.json()}
+                response_data = response.json()  
+
+                answer = response_data.get('answer', "No answer available")
+
+                new_chat = Chat(
+                    sender_id=chat.sender_id,
+                    sender_name="User",
+                    entry=chat.entry,
+                    answer_type=chat.answer_type,
+                    answer=answer,
+                    created_at=datetime.now()
+                )
+
+                db.add(new_chat)
+                db.commit()
+                db.refresh(new_chat)
+
+                return new_chat
             else:
                 return {"status": "error", "message": "Failed to create chat", "details": response.text}
-                
+                    
         except Exception as e:
             return {"status": "error", "message": "An error occurred", "details": str(e)}
         
