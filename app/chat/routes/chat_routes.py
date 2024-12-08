@@ -8,7 +8,8 @@ chats = APIRouter()
 tag = "Chat"
 endpoint = "/chats"
 
-@chats.post("/chats")
-def create_chat(db: Session = Depends(get_db)):
+@chats.post("/chats/{entry}")
+def create_chat(entry: str, db: Session = Depends(get_db)):
     corpus_key = ChatService.create_corpus(db)
-    return ChatService.index_document("Hello, world!", corpus_key, db)
+    ChatService.index_document("Technology is the application of scientific knowledge for practical purposes, especially in industry.", "us", corpus_key)
+    return ChatService.create_chat(entry, corpus_key)
