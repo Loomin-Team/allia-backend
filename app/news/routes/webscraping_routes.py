@@ -1,39 +1,25 @@
 from fastapi import APIRouter, HTTPException
 
-from app.news.services.bings_scraper import BingNewsWebScraper
+from app.news.services.bing_scraper import BingNewsWebScraper
 from app.news.services.google_scraper import GoogleNewsWebScraper
 
 news = APIRouter()
 tag = "News"
 endpoint = "/news"
 
-@news.get("/news/google-news/")
-async def fetch_google_news(query: str, region: str = "us", max_results: int = 10):
-    try:
-        scraper = GoogleNewsWebScraper()
-        articles = scraper.get_news(query=query, region=region, max_results=max_results)
-        return {"query": query, "articles": articles}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-@news.get("/news/bing-news/")
-async def fetch_google_news(query: str, region: str = "us", max_results: int = 10):
-    try:
-        scraper = BingNewsWebScraper()
-        articles = scraper.get_news(query=query, region=region, max_results=max_results)
-        return {"query": query, "articles": articles}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-    
-@news.get("/news/google-news/article/")
-async def extract_article_content(url: str):
-    """
-    Endpoint para extraer el contenido de un artículo.
-    """
+@news.get("/news/serpapi")
+async def fetch_serapi_news(query: str, language: str = "us", max_results: int = 10):
     try:
-        scraper = GoogleNewsWebScraper()
-        content = scraper.extract_news_content(url)
-        return content
+        google_scraper = GoogleNewsWebScraper()
+        concatenatedGoogle = google_scraper.get_news(query=query, language=language, max_results=max_results)
+        print("Google News Articles: ", concatenatedGoogle)
+        
+        bing_scraper = BingNewsWebScraper()
+        concatenatedBing = bing_scraper.get_news(query=query, language=language, max_results=max_results)
+        print("Bing News Articles: ", concatenatedBing)
+        
+        return {"concatenated": concatenatedBing + concatenatedGoogle}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
