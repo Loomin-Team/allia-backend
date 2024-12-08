@@ -8,5 +8,6 @@ class User(Base):
     fullname = Column(String(255), nullable=False)
     username = Column(String(100), unique=True, index=True, nullable=False)
     email = Column(String(155), unique=True, index=True, nullable=False)
+    profile_picture = Column(String(255), default="")
     password = Column(String(255), nullable=False)
     registered = Column(Boolean, default=False)
