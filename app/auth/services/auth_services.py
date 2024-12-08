@@ -1,12 +1,19 @@
 import os
 from dotenv import load_dotenv
 from fastapi import HTTPException
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from app.auth.models.user_model import User
 from app.auth.schemas.auth_schemas import CreateUserRequest, UserSchemaPost, Token
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
+from app.config.routes import prefix
+
+endpoint = "/auth"
+token_url = prefix + endpoint + "/sign-in"
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl=token_url)
+
 
 # Cargar variables de entorno
 load_dotenv()
@@ -32,19 +39,21 @@ class AuthServices:
         if existing_user:
             raise HTTPException(status_code=400, detail="Email ya registrado.")
         
-        hashed_password = bcrypt_context.hash(create_user_request.password)
+        hashed_password = bcrypt_context.hash(create_user_request.password.encode("utf-8"))
         
         new_user = User(
             fullname=create_user_request.fullname,
             username=create_user_request.username,
             email=create_user_request.email,
-            password=hashed_password
+            password=hashed_password,
+            profile_picture="",
+            registered=True
         )
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
 
-        token = AuthServices.create_access_token(new_user.email, new_user.id, timedelta(hours=1))
+        token = AuthServices.create_access_token(new_user.email, new_user.id, new_user.registered, timedelta(hours=1))
         return Token(access_token=token, token_type="bearer")
 
     @staticmethod
@@ -52,13 +61,12 @@ class AuthServices:
         user = AuthServices.authenticate_user(create_user_request.email, create_user_request.password, db)
         if not user:
             raise HTTPException(status_code=401, detail="Email o contraseña inválidos.")
-        
-        token = AuthServices.create_access_token(user.email, user.id, timedelta(hours=1))
+        token = AuthServices.create_access_token(user.email, user.id, user.registered, timedelta(hours=1))
         return Token(access_token=token, token_type="bearer")
 
     @staticmethod
-    def create_access_token(email: str, user_id: int, expires_delta: timedelta):
-        to_encode = {"sub": email, "user_id": user_id}
+    def create_access_token(email: str, user_id: int, registered: bool,  expires_delta: timedelta):
+        to_encode = {"sub": email, "user_id": user_id, "registered": registered}
         expire = datetime.utcnow() + expires_delta
         to_encode.update({"exp": expire})
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
