@@ -9,7 +9,7 @@ class ProfileService:
     def update_profile(user_id: int, update_data: UpdateProfileRequest, db: Session):
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            raise HTTPException(status_code=404, detail="User not found")
 
         if update_data.fullname:
             user.fullname = update_data.fullname
@@ -24,7 +24,7 @@ class ProfileService:
     def update_profile_photo(user_id: int, update_data: UpdatePhotoRequest, db: Session):
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            raise HTTPException(status_code=404, detail="User not found")
 
         if update_data.profile_picture:
             user.profile_picture = update_data.profile_picture
@@ -32,4 +32,11 @@ class ProfileService:
         db.commit()
         db.refresh(user)
         return user
+    
+    @staticmethod
+    def get_fullname_by_id(user_id: int, db: Session):
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user.fullname
                              
