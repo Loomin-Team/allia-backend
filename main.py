@@ -49,7 +49,7 @@ def generate_news_query(user_description):
             "role": "system",
             "content": f"""Eres un experto en generar queries de búsqueda CORTAS para noticias.
             IMPORTANTE: Genera la query en el MISMO IDIOMA del texto original.
-            La query NO DEBE exceder 10 palabras.
+            La query NO DEBE exceder 12 palabras.
 
             Debes crear la query más efectiva y CONCISA posible priorizando:
             1. Nombres propios de personas o entidades
