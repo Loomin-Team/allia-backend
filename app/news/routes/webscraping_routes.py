@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
-from app.news.services.bing_scraper import BingNewsWebScraper
-from app.news.services.google_scraper import GoogleNewsWebScraper
+from app.utils.webscrapping.bing_scraper import BingNewsWebScraper
+from app.utils.webscrapping.google_scraper import GoogleNewsWebScraper
 
 news = APIRouter()
 tag = "News"
