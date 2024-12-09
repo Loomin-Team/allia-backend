@@ -1,19 +1,18 @@
-from datetime import datetime
-import os
 import requests
-import json
 
-from sqlalchemy import null
-
-from app.chat.models.chat_model import Chat
-from app.chat.models.corpus_model import Corpus
 from app.chat.schemas.chat_schema import ChatRequest
-from app.profiles.services.profiles_services import ProfileService
+from app.utils.vectara import VectaraClient
 
 class ChatService:
     @staticmethod
-    def create_chat(entry: str, corpus_key: str):
-        pass
+    def create_chat(chat_request: ChatRequest, db: requests.Session):
+        try:
+            vectara_client = VectaraClient()
+            chat = vectara_client.create_chat(chat_request, db)
+            return chat
+        except Exception as e:
+            return {"status": "error", "message": "Failed to create chat", "details": str(e)}
+
 
     @staticmethod
     def create_reply(entry: str, chat_id: str, db: requests.Session):

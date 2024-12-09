@@ -1,5 +1,5 @@
 from serpapi import GoogleSearch
-from app.news.services.serpapi_web_scraper import SerpApiWebScraper
+from app.utils.webscrapping.serpapi_web_scraper import SerpApiWebScraper
 
 class GoogleNewsWebScraper(SerpApiWebScraper):
     """

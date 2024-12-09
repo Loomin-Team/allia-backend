@@ -1,6 +1,6 @@
 import os
-from app.news.services.serpapi_web_scraper import SerpApiWebScraper
 from serpapi import GoogleSearch
+from app.utils.webscrapping.serpapi_web_scraper import SerpApiWebScraper
 
 
 class BingNewsWebScraper(SerpApiWebScraper):

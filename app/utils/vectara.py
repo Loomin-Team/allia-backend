@@ -1,9 +1,13 @@
+from datetime import datetime
 import os
 import json
 import requests
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
-from app.chat.models.corpus_model import Corpus  
+from app.chat.models.chat_model import Chat
+from app.chat.models.corpus_model import Corpus
+from app.chat.schemas.chat_schema import ChatRequest
+from app.profiles.services.profiles_services import ProfileService  
 
 load_dotenv()
 
@@ -118,7 +122,7 @@ class VectaraClient:
         except Exception as e:
             return {"status": "error", "message": "Failed to index document", "details": str(e)}
 
-    def create_chat(self, entry: str, corpus_key: str) -> dict:
+    def create_new_turn(self, chat: ChatRequest, corpus_key: str, db: Session) -> Chat:
         """
         Creates a new chat with the specified query and corpus.
 
@@ -130,32 +134,32 @@ class VectaraClient:
             dict: A status dictionary indicating success or error.
         """
         payload = json.dumps({
-            "query": entry,
+            "query": chat.entry,
             "search": {
                 "corpora": [
-                    {
-                        "custom_dimensions": {},
-                        "metadata_filter": None,
-                        "lexical_interpolation": 0.025,
-                        "semantics": "default",
-                        "corpus_key": corpus_key
-                    }
+                {
+                    "custom_dimensions": {},
+                    "metadata_filter": None,
+                    "lexical_interpolation": 0.025,
+                    "semantics": "default",
+                    "corpus_key": corpus_key
+                }
                 ],
                 "offset": 0,
                 "limit": 10,
                 "context_configuration": {
-                    "characters_before": 30,
-                    "characters_after": 30,
-                    "sentences_before": 3,
-                    "sentences_after": 3,
-                    "start_tag": "<em>",
-                    "end_tag": "</em>"
+                "characters_before": 30,
+                "characters_after": 30,
+                "sentences_before": 3,
+                "sentences_after": 3,
+                "start_tag": "<em>",
+                "end_tag": "</em>"
                 },
                 "reranker": {
-                    "type": "customer_reranker",
-                    "reranker_name": "Rerank_Multilingual_v1",
-                    "limit": 1,
-                    "cutoff": 0
+                "type": "customer_reranker",
+                "reranker_name": "Rerank_Multilingual_v1",
+                "limit": 1,
+                "cutoff": 0
                 }
             },
             "generation": {
@@ -165,15 +169,15 @@ class VectaraClient:
                 "max_response_characters": 300,
                 "response_language": "auto",
                 "model_parameters": {
-                    "max_tokens": 500,
-                    "temperature": 0,
-                    "frequency_penalty": 0,
-                    "presence_penalty": 0
+                "max_tokens": 500,
+                "temperature": 0,
+                "frequency_penalty": 0,
+                "presence_penalty": 0
                 },
                 "citations": {
-                    "style": "none",
-                    "url_pattern": "https://vectara.com/documents/{doc.id}",
-                    "text_pattern": "{doc.title}"
+                "style": "none",
+                "url_pattern": "https://vectara.com/documents/{doc.id}",
+                "text_pattern": "{doc.title}"
                 },
                 "enable_factual_consistency_score": True
             },
@@ -187,6 +191,34 @@ class VectaraClient:
         try:
             response = requests.post(f"{self.BASE_URL}/chats", headers=self._get_headers(), data=payload)
             response.raise_for_status()
-            return {"status": "success", "message": "Chat created successfully", "data": response.json()}
+            response_data = response.json()  
+
+            answer = response_data.get('answer', "No answer available")
+            chat_id = response_data.get('chat_id', "No chat id available")
+            sender_fullname = ProfileService.get_fullname_by_id(chat.sender_id, db)
+                
+            new_chat = Chat(
+                sender_id=chat.sender_id,
+                sender_name=sender_fullname,
+                chat_id=chat_id,
+                entry=chat.entry,
+                answer_type=chat.answer_type,
+                answer=answer,
+                created_at=datetime.now()
+            )
+
+            db.add(new_chat)
+            db.commit()
+            db.refresh(new_chat)
+
+            return new_chat
+        
         except Exception as e:
             return {"status": "error", "message": "Failed to create chat", "details": str(e)}
+        
+    
+    def create_chat(self, chat: ChatRequest, db: Session):
+        corpus_key = self.create_corpus(db)
+        self.index_document("tech is the application of scientific knowledge for practical purposes, especially in industry", "us", corpus_key)
+        chat = self.create_new_turn(chat, corpus_key,db)
+        return chat

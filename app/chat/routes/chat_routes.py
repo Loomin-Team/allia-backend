@@ -2,16 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from app.chat.schemas.chat_schema import ChatRequest, ChatResponse
+from app.chat.schemas.chat_schema import ChatRequest
 from app.chat.services.chat_services import ChatService
 from app.config.db import get_db
 
 chats = APIRouter()
-tag = "Chat"
+tag = "Chats"
 endpoint = "/chats"
-
-class ChatRequest(BaseModel):
-    entry: str
 
 @chats.post("/", summary="Create a new chat", tags=[tag])
 def create_chat(chat_request: ChatRequest, db: Session = Depends(get_db)):
@@ -19,9 +16,7 @@ def create_chat(chat_request: ChatRequest, db: Session = Depends(get_db)):
     Create a new chat with the provided entry.
     """
     try:
-        corpus_key = ChatService.create_corpus(db)
-        ChatService.index_document(chat_request.entry, "us", corpus_key)
-        chat = ChatService.create_chat(chat_request.entry, corpus_key)
+        chat = ChatService.create_chat(chat_request, db)
         return {"success": True, "chat": chat}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
