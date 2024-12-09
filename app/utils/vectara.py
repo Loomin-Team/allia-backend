@@ -4,10 +4,10 @@ import json
 import requests
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
-from app.chat.models.chat_model import Chat
-from app.chat.models.corpus_model import Corpus
+from app.models.chat import Chat
 from app.chat.schemas.chat_schema import ChatRequest, ChatTurnRequest
 from app.profiles.services.profiles_services import ProfileService  
+import random
 
 load_dotenv()
 
@@ -48,14 +48,12 @@ class VectaraClient:
         Raises:
             Exception: If the API call fails or the corpus key is not returned.
         """
-        new_corpus = Corpus()
-        db.add(new_corpus)
-        db.commit()
-        db.refresh(new_corpus)
+
+        corpus_key = str(datetime.now().timestamp())+random.randint(1, 1000)
 
         payload = json.dumps({
-            "key": str(new_corpus.id),
-            "name": str(new_corpus.id),
+            "key": corpus_key,
+            "name": corpus_key,
             "description": "Documents with important information for the prompt.",
             "queries_are_answers": False,
             "documents_are_questions": False,

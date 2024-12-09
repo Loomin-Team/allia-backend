@@ -1,7 +1,7 @@
 from enum import Enum
 
 class AnswerTypeEnum(Enum):
-    Content = "Content"
-    Image = "Image"
+    Text = "Text"
+    Post = "Post"
     Video = "Video"
     Meme = "Meme"

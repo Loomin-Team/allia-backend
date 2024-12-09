@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.auth.models.user_model import User
+from app.models.user import User
 from fastapi import HTTPException, status
 
 class UserService:

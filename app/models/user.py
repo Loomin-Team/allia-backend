@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy.orm import relationship
 from app.config.db import Base
 
 class User(Base):
@@ -11,3 +12,6 @@ class User(Base):
     profile_picture = Column(String(255), default="")
     password = Column(String(255), nullable=False)
     registered = Column(Boolean, default=False)
+
+    messages = relationship('Message', back_populates='user')
+    subscriptions = relationship('Subscription', back_populates='user')

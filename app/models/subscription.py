@@ -13,7 +13,6 @@ class Subscription(Base):
     price = Column(Float, nullable=False)
     subscription_plan = Column(Enum(SusbscriptionPlanEnum), nullable=False)
     payment_date = Column(DateTime, nullable=False)
-    user_id = Column(Integer, nullable=False)
-    #user_id = Column(Integer, ForeignKey('users.id'), nullable=False, default=None)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, default=None)
     
-    #user = relationship("User", back_populates="users")
+    user = relationship("User", back_populates="users")

@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlite3 import IntegrityError
-from app.subscription.models.subscription_model import Subscription
+from app.models.subscription import Subscription
 from app.subscription.schemas.subscription_schema import SubscriptionRequest, SubscriptionResponse
 from sqlalchemy.orm import Session
 

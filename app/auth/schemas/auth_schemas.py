@@ -1,5 +1,4 @@
 from pydantic import BaseModel, EmailStr
-from app.auth.models.user_model import User
 
 class CreateUserRequest(BaseModel):
     email: EmailStr
