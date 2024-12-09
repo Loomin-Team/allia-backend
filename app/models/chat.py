@@ -4,9 +4,9 @@ from app.config.db import Base
 
 class Chat(Base):
     __tablename__ = 'chats'
-    id = Column(Integer, primary_key=True, index=True)
-    corpus_key = Column(Integer, nullable=False)
-    title = Column(String(255), nullable=False)  # Specify maximum length (e.g., 255)
+    id = Column(String(255), primary_key=True, index=True)
+    corpus_key = Column(String(255), nullable=False)
+    title = Column(String(255), nullable=False) 
     created_at = Column(DateTime, nullable=False)
 
-    messages = relationship('Message', back_populates='chat')
+    message = relationship('Message', back_populates='messages')

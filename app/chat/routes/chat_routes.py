@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from app.chat.schemas.chat_schema import ChatRequest, ChatTurnRequest
+from app.chat.schemas.message_schema import MessageRequest, MessageTurnRequest
 from app.chat.services.chat_services import ChatService
 from app.config.db import get_db
 
@@ -10,20 +10,20 @@ chats = APIRouter()
 tag = "Chats"
 endpoint = "/chats"
 
-@chats.post("/", summary="Create a new chat", tags=[tag])
-def create_chat(chat_request: ChatRequest, db: Session = Depends(get_db)):
+@chats.post("/chats", summary="Create a new chat", tags=[tag])
+def create_chat(message_request: MessageRequest, db: Session = Depends(get_db)):
     """
     Create a new chat with the provided entry.
     """
     try:
-        chat = ChatService.create_chat(chat_request, db)
+        chat = ChatService.create_chat(message_request, db)
         return {"success": True, "chat": chat}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @chats.post("/reply", summary="Post a reply to an existing chat", tags=[tag])
-def create_reply(turn_request: ChatTurnRequest, db: Session = Depends(get_db)):
+def create_reply(turn_request: MessageTurnRequest, db: Session = Depends(get_db)):
     """
     Post a reply to an existing chat.
     """
@@ -32,7 +32,6 @@ def create_reply(turn_request: ChatTurnRequest, db: Session = Depends(get_db)):
         return {"success": True, "reply": reply}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @chats.get("/{chat_id}/history", summary="Get chat history by id", tags=[tag])
 def get_chat_history(chat_id: str, db: Session = Depends(get_db)):

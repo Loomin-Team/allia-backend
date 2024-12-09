@@ -9,8 +9,6 @@ class Token(BaseModel):
     token_type: str
     user: dict 
 
-
-
 class UserSchemaPost(BaseModel):
     fullname: str  
     email: EmailStr 
