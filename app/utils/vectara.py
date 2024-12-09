@@ -1,13 +1,19 @@
 from datetime import datetime
 import os
 import json
+import string
 import requests
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
-from app.chat.models.chat_model import Chat
-from app.chat.models.corpus_model import Corpus
-from app.chat.schemas.chat_schema import ChatRequest, ChatTurnRequest
+from app.chat.schemas.message_schema import MessageRequest, MessageTurnRequest
+from app.models.chat import Chat
+from app.models.message import Message
 from app.profiles.services.profiles_services import ProfileService  
+import random
+
+from app.utils.groq import GroqClient
+from app.utils.webscrapping.bing_scraper import BingNewsWebScraper
+from app.utils.webscrapping.google_scraper import GoogleNewsWebScraper
 
 load_dotenv()
 
@@ -35,7 +41,7 @@ class VectaraClient:
             'x-api-key': self.API_KEY
         }
 
-    def create_corpus(self, db: Session) -> str:
+    def create_corpus(self) -> str:
         """
         Creates a new corpus in Vectara and stores it in the database.
 
@@ -48,14 +54,12 @@ class VectaraClient:
         Raises:
             Exception: If the API call fails or the corpus key is not returned.
         """
-        new_corpus = Corpus()
-        db.add(new_corpus)
-        db.commit()
-        db.refresh(new_corpus)
+
+        corpus_key = ''.join(random.choices(string.ascii_letters + string.digits + "_=-", k=32))
 
         payload = json.dumps({
-            "key": str(new_corpus.id),
-            "name": str(new_corpus.id),
+            "key": corpus_key,
+            "name": corpus_key,
             "description": "Documents with important information for the prompt.",
             "queries_are_answers": False,
             "documents_are_questions": False,
@@ -118,11 +122,13 @@ class VectaraClient:
             response = requests.post(f"{self.BASE_URL}/corpora/{corpus_key}/documents",
                                      headers=self._get_headers(), data=payload)
             response.raise_for_status()
+            print("INDEX RESPONSE: ", response.json())
             return {"status": "success", "message": "Document indexed successfully"}
         except Exception as e:
+            print("INDEX RESPONSE: ", response.json())
             return {"status": "error", "message": "Failed to index document", "details": str(e)}
 
-    def create_new_turn(self, chat: ChatRequest, corpus_key: str, db: Session) -> Chat:
+    def create_new_turn(self, message: MessageRequest, title: str, corpus_key: str, db: Session) -> Chat:
         """
         Creates a new chat with the specified query and corpus.
 
@@ -134,7 +140,7 @@ class VectaraClient:
             dict: A status dictionary indicating success or error.
         """
         payload = json.dumps({
-            "query": chat.entry,
+            "query": message.entry,
             "search": {
                 "corpora": [
                 {
@@ -195,34 +201,72 @@ class VectaraClient:
 
             answer = response_data.get('answer', "No answer available")
             chat_id = response_data.get('chat_id', "No chat id available")
-            sender_fullname = ProfileService.get_fullname_by_id(chat.sender_id, db)
+            turn_id = response_data.get('turn_id', "No turn id available")
+            
+            print("TURN ID: ", turn_id)
                 
             new_chat = Chat(
-                sender_id=chat.sender_id,
-                sender_name=sender_fullname,
-                corpus_key=corpus_key,
-                chat_id=chat_id,
-                entry=chat.entry,
-                answer_type=chat.answer_type,
-                answer=answer,
-                created_at=datetime.now()
+                id = chat_id,
+                corpus_key = corpus_key,
+                title = title,
+                created_at = datetime.now()
             )
-
+            
             db.add(new_chat)
             db.commit()
             db.refresh(new_chat)
-
-            return new_chat
+            
+            new_message = Message(
+                id = turn_id,
+                user_id = message.user_id,
+                chat_id = chat_id,
+                entry = message.entry,
+                answer = answer,
+                tone = message.tone,
+                answer_type = message.answer_type,
+                created_at = datetime.now()
+            )
+            
+            print("NEW MESSAGE: ", new_message)
+            
+            db.add(new_message)
+            db.commit()
+            db.refresh(new_message)
+            
+            print("RESPONSE VECTARA: ", response.json())
+            return new_message
         
         except Exception as e:
+            print("RESPONSE VECTARA: ", response.json())
             return {"status": "error", "message": "Failed to create chat", "details": str(e)}
         
     
-    def create_chat(self, chat: ChatRequest, db: Session):
-        corpus_key = self.create_corpus(db)
-        self.index_document("tech is the application of scientific knowledge for practical purposes, especially in industry", "us", corpus_key)
-        chat = self.create_new_turn(chat, corpus_key,db)
-        return chat
+    def create_chat(self, message_request: MessageRequest, db: Session):
+        
+        # Create corpus
+        corpus_key = self.create_corpus()
+        
+        # Use Groq
+        groq_client = GroqClient()
+        query_data = groq_client.generate_news_query(user_description=message_request.entry)
+        query_content = query_data["query"] 
+        query_language = query_data["language"]
+        
+        # Use Webscrapping
+        google_scraper = GoogleNewsWebScraper()
+        concatenatedGoogle = google_scraper.get_news(query=query_content, language=query_language, max_results=5)
+        
+        bing_scraper = BingNewsWebScraper()
+        concatenatedBing = bing_scraper.get_news(query=query_content, language=query_language, max_results=5)
+        print("CONCATED: ", concatenatedBing + concatenatedGoogle)
+        print("QUERY: ", query_content, " , QUERY LANGUAGE: ", query_language)
+        # Use Vectara
+        self.index_document(concatenatedBing, "us", corpus_key)
+        self.index_document(concatenatedGoogle, "us", corpus_key)
+        message = self.create_new_turn(message_request, query_content, corpus_key, db)
+        return message
+    
+    """
     
     def get_chat_by_user_id(self, user_id: int, db: Session):
         try:
@@ -241,10 +285,12 @@ class VectaraClient:
         except Exception as e:
             return {"status": "error", "message": "Failed to get chat by id", "details": str(e)}
         
-    def create_reply(self, chat: ChatTurnRequest, corpus_key: str, db: Session):
+    """
+    
+    def create_reply(self, message: MessageTurnRequest, corpus_key: str, db: Session):
         
         payload = json.dumps({
-            "query": chat.entry,
+            "query": message.entry,
             "search": {
                 "corpora": [
                 {
@@ -252,7 +298,7 @@ class VectaraClient:
                     "metadata_filter": None,
                     "lexical_interpolation": 0.025,
                     "semantics": "default",
-                    "corpus_key": str(corpus_key)
+                    "corpus_key": corpus_key
                 }
                 ],
                 "offset": 0,
@@ -299,50 +345,62 @@ class VectaraClient:
         })
             
         try:
-            response = requests.post(f"{self.BASE_URL}/chats/{chat.chat_id}/turns", headers=self._get_headers(), data=payload)
+            response = requests.post(f"{self.BASE_URL}/chats/{message.chat_id}/turns", headers=self._get_headers(), data=payload)
             response.raise_for_status()
             response_data = response.json()
             answer = response_data.get('answer', "No answer available")
-            sender_fullname = ProfileService.get_fullname_by_id(chat.sender_id, db)
+            turn_id = response_data.get('turn_id', "No turn id available")
             
-            max_length = 255 
-            if len(answer) > max_length:
-                answer = answer[:max_length] 
-
-            new_reply = Chat(
-                sender_id=chat.sender_id,
-                sender_name=sender_fullname,
-                corpus_key=int(corpus_key),
-                chat_id=chat.chat_id,
-                entry=chat.entry,
-                answer_type=chat.answer_type,
-                answer=answer,
-                created_at=datetime.now()
+            new_message = Message(
+                id = turn_id,
+                user_id = message.user_id,
+                chat_id = message.chat_id,
+                entry = message.entry,
+                tone = message.tone,
+                answer = answer,
+                answer_type = message.answer_type,
+                created_at = datetime.now()
             )
-
-            db.add(new_reply)
+            
+            db.add(new_message)
             db.commit()
-            db.refresh(new_reply)
+            db.refresh(new_message)
 
-            return new_reply
+            return new_message
             
         except Exception as e:
             return {"status": "error", "message": "Failed to create reply", "details": str(e)}
 
     def get_corpus_key_by_chat_id(self, chat_id: str, db: Session):
         try:
-            chat = db.query(Chat).filter(Chat.chat_id == chat_id).first()
+            chat = db.query(Chat).filter(Chat.id == chat_id).first()
             return chat.corpus_key
         
         except Exception as e:
             return {"status": "error", "message": "Failed to get corpus key", "details": str(e)}
 
-    def create_index_reply(self, chat: ChatTurnRequest, db: Session):
+    def create_index_reply(self, message_request: MessageTurnRequest, db: Session):
         try:
-            corpus_key = self.get_corpus_key_by_chat_id(chat.chat_id, db)
+            corpus_key = self.get_corpus_key_by_chat_id(message_request.chat_id, db)
             self.index_document("ocean is a very large expanse of sea, in particular each of the main areas into which the sea is divided geographically.", "us", str(corpus_key))
-            chat = self.create_reply(chat, corpus_key, db)
+            chat = self.create_reply(message_request, corpus_key, db)
             return chat
         
         except Exception as e:
             return {"status": "error", "message": "Failed to create reply", "details": str(e)}
+        
+    def get_chat_by_user_id(self, user_id: int, db: Session):
+        try:
+            chat = db.query(Chat).join(Message).filter(Message.user_id == user_id).first()
+            return chat
+        except Exception as e:
+            raise Exception(f"Error al obtener el chat para el usuario {user_id}: {str(e)}")
+      
+
+    def get_messages_by_chat_id(self, chat_id: str, db: Session):
+        try:
+            messages = db.query(Message).filter(Message.chat_id == chat_id).all()
+            return messages
+        except Exception as e:
+            raise Exception(f"Error al obtener los mensajes para el chat {chat_id}: {str(e)}")
+            

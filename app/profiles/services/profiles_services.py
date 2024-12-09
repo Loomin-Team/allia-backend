@@ -1,8 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from app.auth.models.user_model import User
+from app.models.user import User
 from app.profiles.schemas.profiles_schemas import UpdateProfileRequest, UpdatePhotoRequest
-from io import BytesIO
 
 class ProfileService:
     @staticmethod
