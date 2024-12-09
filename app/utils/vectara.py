@@ -1,5 +1,4 @@
 from datetime import datetime
-from mailbox import Message
 import os
 import json
 import string
@@ -8,6 +7,7 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from app.chat.schemas.message_schema import MessageRequest, MessageTurnRequest
 from app.models.chat import Chat
+from app.models.message import Message
 from app.profiles.services.profiles_services import ProfileService  
 import random
 
@@ -388,3 +388,19 @@ class VectaraClient:
         
         except Exception as e:
             return {"status": "error", "message": "Failed to create reply", "details": str(e)}
+        
+    def get_chat_by_user_id(self, user_id: int, db: Session):
+        try:
+            chat = db.query(Chat).join(Message).filter(Message.user_id == user_id).first()
+            return chat
+        except Exception as e:
+            raise Exception(f"Error al obtener el chat para el usuario {user_id}: {str(e)}")
+      
+
+    def get_messages_by_chat_id(self, chat_id: str, db: Session):
+        try:
+            messages = db.query(Message).filter(Message.chat_id == chat_id).all()
+            return messages
+        except Exception as e:
+            raise Exception(f"Error al obtener los mensajes para el chat {chat_id}: {str(e)}")
+            
