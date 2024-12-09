@@ -3,7 +3,7 @@ from pydantic import BaseModel
 class UserResponse(BaseModel):
     id: int
     fullname: str
-    username: str
+    #username: str
     email: str
     profile_picture: str
 
