@@ -54,3 +54,34 @@ def get_chat_history_by_user_id(user_id: int, db: Session = Depends(get_db)):
         return {"success": True, "history": history}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+@chats.get("/{user_id}", summary="Get chats by user id", tags=[tag])
+def get_chats_by_user_id(user_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve chats for the given `user_id`.
+    """
+    try:
+        chats = ChatService.get_chats_by_user_id(user_id, db)
+        if not chats:
+            raise HTTPException(status_code=404, detail="No chats found for this user")
+
+        return {"success": True, "chats": chats}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@chats.get("/messages/{chat_id}", summary="Get messages by chat id", tags=[tag])
+def get_messages_by_chat_id(chat_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve messages for the given `chat_id`.
+    """
+    try:
+        messages = ChatService.get_messages_by_chat_id(chat_id, db)
+        if not messages:
+            raise HTTPException(status_code=404, detail="No messages found for this chat")
+
+        return {"success": True, "messages": messages}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))    
