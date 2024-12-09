@@ -324,12 +324,9 @@ class VectaraClient:
             db.commit()
             db.refresh(new_reply)
 
-            print(new_reply)
             return new_reply
             
         except Exception as e:
-            print(f"Error occurred: {e}")
-            print(f"Response text: {response.text}")
             return {"status": "error", "message": "Failed to create reply", "details": str(e)}
 
     def get_corpus_key_by_chat_id(self, chat_id: str, db: Session):
