@@ -5,7 +5,7 @@ import string
 import requests
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
-from app.chat.schemas.message_schema import MessageRequest, MessageTurnRequest
+from app.chat.schemas.message_schema import MessageDemoRequest, MessageRequest, MessageTurnRequest
 from app.models.chat import Chat
 from app.models.message import Message
 from app.profiles.services.profiles_services import ProfileService  
@@ -263,27 +263,6 @@ class VectaraClient:
         message = self.create_new_turn(message_request, query_content, corpus_key, db)
         return message
     
-    """
-    
-    def get_chat_by_user_id(self, user_id: int, db: Session):
-        try:
-            chats = db.query(Chat).filter(Chat.sender_id == user_id).all()
-            return chats
-        
-        except Exception as e:
-            return {"status": "error", "message": "Failed to get chat history", "details": str(e)}
-
-    
-    def get_chat_by_id(self, chat_id: str, db: Session) -> dict:
-        try:
-            chats = db.query(Chat).filter(Chat.chat_id == chat_id).all()
-            return chats
-        
-        except Exception as e:
-            return {"status": "error", "message": "Failed to get chat by id", "details": str(e)}
-        
-    """
-    
     def create_reply(self, message: MessageTurnRequest, corpus_key: str, db: Session):
         
         payload = json.dumps({
@@ -425,3 +404,123 @@ class VectaraClient:
         except Exception as e:
             raise Exception(f"Error al obtener los mensajes para el chat {chat_id}: {str(e)}")
             
+            
+    def create_new_turn_demo(self, message: MessageDemoRequest, corpus_key: str) -> dict:
+        """
+        Creates a new chat demo with the specified MessageDemoRequest and corpus.
+
+        Args:
+            message (MessageDemoRequest): The message request object.
+            corpus_key (str): The key of the corpus.
+
+        Returns:
+            dict: A status dictionary indicating success or error.
+        """
+        payload = json.dumps({
+            "query": message.entry,
+            "search": {
+                "corpora": [
+                {
+                    "custom_dimensions": {},
+                    "metadata_filter": None,
+                    "lexical_interpolation": 0.025,
+                    "semantics": "default",
+                    "corpus_key": corpus_key
+                }
+                ],
+                "offset": 0,
+                "limit": 10,
+                "context_configuration": {
+                "characters_before": 30,
+                "characters_after": 30,
+                "sentences_before": 3,
+                "sentences_after": 3,
+                "start_tag": "<em>",
+                "end_tag": "</em>"
+                },
+                "reranker": {
+                "type": "customer_reranker",
+                "reranker_name": "Rerank_Multilingual_v1",
+                "limit": 1,
+                "cutoff": 0
+                }
+            },
+            "generation": {
+                "generation_preset_name": "vectara-summary-ext-v1.2.0",
+                "max_used_search_results": 5,
+                "prompt_template": f"""
+                [
+                {{"role": "system", "content": "You are a helpful assistant. You will create a response based on the user's query and the tone provided."}},
+                {{"role": "user", "content": "{message.entry}, with a {message.tone.value} tone."}},
+                {{"role": "assistant", "content": "Generate a response with the specified tone: {message.tone.value}"}}
+                ]
+                """,
+                "max_response_characters": 250,
+                "response_language": "auto",
+                "model_parameters": {
+                "max_tokens": 500,
+                "temperature": 0,
+                "frequency_penalty": 0,
+                "presence_penalty": 0
+                },
+                "citations": {
+                "style": "none",
+                "url_pattern": "https://vectara.com/documents/{doc.id}",
+                "text_pattern": "{doc.title}"
+                },
+                "enable_factual_consistency_score": True
+            },
+            "chat": {
+                "store": True
+            },
+            "save_history": True,
+            "stream_response": False
+        })
+
+        try:
+            response = requests.post(f"{self.BASE_URL}/chats", headers=self._get_headers(), data=payload)
+            response.raise_for_status()
+            response_data = response.json()
+            
+            answer = response_data.get('answer', "No answer available")
+            chat_id = response_data.get('chat_id', "No chat id available")
+            turn_id = response_data.get('turn_id', "No turn id available")
+            
+            formatted_response = {
+                "id": turn_id,
+                "chat_id": chat_id,
+                "answer": answer,
+                "created_at": datetime.now(),
+                "entry": message.entry,
+                "tone": message.tone.value,
+                "answer_type": message.answer_type.value
+            }
+            return formatted_response
+        
+        except Exception as e:
+            return {"status": "error", "message": "Failed to create chat demo", "details": str(e)}
+        
+        
+    def create_chat_demo(self, message_request: MessageDemoRequest):
+        
+        # Create corpus
+        corpus_key = self.create_corpus()
+        
+        # Use Groq
+        groq_client = GroqClient()
+        query_data = groq_client.generate_news_query(user_description=message_request.entry)
+        query_content = query_data["query"] 
+        query_language = query_data["language"]
+        
+        # Use Webscrapping
+        google_scraper = GoogleNewsWebScraper()
+        concatenatedGoogle = google_scraper.get_news(query=query_content, language=query_language, max_results=5)
+        
+        bing_scraper = BingNewsWebScraper()
+        concatenatedBing = bing_scraper.get_news(query=query_content, language=query_language, max_results=5)
+        
+        # Use Vectara
+        self.index_document(concatenatedBing, query_language, corpus_key)
+        self.index_document(concatenatedGoogle, query_language, corpus_key)
+        message = self.create_new_turn_demo(message_request, corpus_key)
+        return message
