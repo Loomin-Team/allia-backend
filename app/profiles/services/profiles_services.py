@@ -13,8 +13,8 @@ class ProfileService:
 
         if update_data.fullname:
             user.fullname = update_data.fullname
-        if update_data.username:
-            user.username = update_data.username
+        #if update_data.username:
+            #user.username = update_data.username
 
         db.commit()
         db.refresh(user)
