@@ -44,7 +44,7 @@ class AuthServices:
 
         
         token = AuthServices.create_access_token(new_user.email, new_user.id, new_user.registered, timedelta(hours=1))
-        return Token(access_token=token, token_type="bearer")
+        return Token(access_token=token, token_type="bearer", user={"id": new_user.id, "fullName": new_user.fullname, "email": new_user.email})
 
     @staticmethod
     async def sign_in(create_user_request: CreateUserRequest, db: Session):

@@ -4,7 +4,7 @@ APScheduler==3.10.4
 asgiref==3.8.1
 asn1crypto==1.5.1
 beautifulsoup4==4.12.3
-bcrypt==4.1.2
+bcrypt==3.2.2
 certifi==2024.2.2
 cffi==1.16.0
 charset-normalizer==3.3.2
