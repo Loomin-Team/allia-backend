@@ -1,6 +1,6 @@
 import requests
 
-from app.chat.schemas.chat_schema import ChatRequest
+from app.chat.schemas.chat_schema import ChatRequest, ChatTurnRequest
 from app.utils.vectara import VectaraClient
 
 class ChatService:
@@ -12,9 +12,10 @@ class ChatService:
         return chat
 
     @staticmethod
-    def create_reply(entry: str, chat_id: str, db: requests.Session):
-        # TODO: To be implemented
-        pass
+    def create_reply(turn_request: ChatTurnRequest, db: requests.Session):
+        vectara_client = VectaraClient()
+        reply = vectara_client.create_index_reply(turn_request, db)
+        return reply
 
     @staticmethod
     def get_chat_history(chat_id: str, db: requests.Session):

@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from app.chat.models.chat_model import Chat
 from app.chat.models.corpus_model import Corpus
-from app.chat.schemas.chat_schema import ChatRequest
+from app.chat.schemas.chat_schema import ChatRequest, ChatTurnRequest
 from app.profiles.services.profiles_services import ProfileService  
 
 load_dotenv()
@@ -166,7 +166,7 @@ class VectaraClient:
                 "generation_preset_name": "vectara-summary-ext-v1.2.0",
                 "max_used_search_results": 5,
                 "prompt_template": "[\n  {\"role\": \"system\", \"content\": \"You are a helpful search assistant.\"},\n  #foreach ($qResult in $vectaraQueryResults)\n     {\"role\": \"user\", \"content\": \"Given the $vectaraIdxWord[$foreach.index] search result.\"},\n     {\"role\": \"assistant\", \"content\": \"${qResult.getText()}\" },\n  #end\n  {\"role\": \"user\", \"content\": \"Generate a summary for the query '${vectaraQuery}' based on the above results.\"}\n]\n",
-                "max_response_characters": 300,
+                "max_response_characters": 250,
                 "response_language": "auto",
                 "model_parameters": {
                 "max_tokens": 500,
@@ -200,6 +200,7 @@ class VectaraClient:
             new_chat = Chat(
                 sender_id=chat.sender_id,
                 sender_name=sender_fullname,
+                corpus_key=corpus_key,
                 chat_id=chat_id,
                 entry=chat.entry,
                 answer_type=chat.answer_type,
@@ -240,3 +241,111 @@ class VectaraClient:
         except Exception as e:
             return {"status": "error", "message": "Failed to get chat by id", "details": str(e)}
         
+    def create_reply(self, chat: ChatTurnRequest, corpus_key: str, db: Session):
+        
+        payload = json.dumps({
+            "query": chat.entry,
+            "search": {
+                "corpora": [
+                {
+                    "custom_dimensions": {},
+                    "metadata_filter": None,
+                    "lexical_interpolation": 0.025,
+                    "semantics": "default",
+                    "corpus_key": str(corpus_key)
+                }
+                ],
+                "offset": 0,
+                "limit": 10,
+                "context_configuration": {
+                "characters_before": 30,
+                "characters_after": 30,
+                "sentences_before": 3,
+                "sentences_after": 3,
+                "start_tag": "<em>",
+                "end_tag": "</em>"
+                },
+                "reranker": {
+                "type": "customer_reranker",
+                "reranker_name": "Rerank_Multilingual_v1",
+                "limit": 1,
+                "cutoff": 0
+                }
+            },
+            "generation": {
+                "generation_preset_name": "vectara-summary-ext-v1.2.0",
+                "max_used_search_results": 5,
+                "prompt_template": "[\n  {\"role\": \"system\", \"content\": \"You are a helpful search assistant.\"},\n  #foreach ($qResult in $vectaraQueryResults)\n     {\"role\": \"user\", \"content\": \"Given the $vectaraIdxWord[$foreach.index] search result.\"},\n     {\"role\": \"assistant\", \"content\": \"${qResult.getText()}\" },\n  #end\n  {\"role\": \"user\", \"content\": \"Generate a summary for the query '${vectaraQuery}' based on the above results.\"}\n]\n",
+                "max_response_characters": 300,
+                "response_language": "auto",
+                "model_parameters": {
+                "max_tokens": 500,
+                "temperature": 0,
+                "frequency_penalty": 0,
+                "presence_penalty": 0
+                },
+                "citations": {
+                "style": "none",
+                "url_pattern": "https://vectara.com/documents/{doc.id}",
+                "text_pattern": "{doc.title}"
+                },
+                "enable_factual_consistency_score": True
+            },
+            "chat": {
+                "store": True
+            },
+            "save_history": True,
+            "stream_response": False
+        })
+            
+        try:
+            response = requests.post(f"{self.BASE_URL}/chats/{chat.chat_id}/turns", headers=self._get_headers(), data=payload)
+            response.raise_for_status()
+            response_data = response.json()
+            answer = response_data.get('answer', "No answer available")
+            sender_fullname = ProfileService.get_fullname_by_id(chat.sender_id, db)
+            
+            max_length = 255 
+            if len(answer) > max_length:
+                answer = answer[:max_length] 
+
+            new_reply = Chat(
+                sender_id=chat.sender_id,
+                sender_name=sender_fullname,
+                corpus_key=int(corpus_key),
+                chat_id=chat.chat_id,
+                entry=chat.entry,
+                answer_type=chat.answer_type,
+                answer=answer,
+                created_at=datetime.now()
+            )
+
+            db.add(new_reply)
+            db.commit()
+            db.refresh(new_reply)
+
+            print(new_reply)
+            return new_reply
+            
+        except Exception as e:
+            print(f"Error occurred: {e}")
+            print(f"Response text: {response.text}")
+            return {"status": "error", "message": "Failed to create reply", "details": str(e)}
+
+    def get_corpus_key_by_chat_id(self, chat_id: str, db: Session):
+        try:
+            chat = db.query(Chat).filter(Chat.chat_id == chat_id).first()
+            return chat.corpus_key
+        
+        except Exception as e:
+            return {"status": "error", "message": "Failed to get corpus key", "details": str(e)}
+
+    def create_index_reply(self, chat: ChatTurnRequest, db: Session):
+        try:
+            corpus_key = self.get_corpus_key_by_chat_id(chat.chat_id, db)
+            self.index_document("ocean is a very large expanse of sea, in particular each of the main areas into which the sea is divided geographically.", "us", str(corpus_key))
+            chat = self.create_reply(chat, corpus_key, db)
+            return chat
+        
+        except Exception as e:
+            return {"status": "error", "message": "Failed to create reply", "details": str(e)}
