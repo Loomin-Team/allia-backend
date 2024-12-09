@@ -9,8 +9,8 @@ if TYPE_CHECKING:
 class Chat(Base):
     __tablename__ = 'chats'
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    corpus_key: Mapped[int] = mapped_column(Integer, nullable=False)
+    id: Mapped[str] = mapped_column(String(255), primary_key=True, index=True)
+    corpus_key: Mapped[str] = mapped_column(String(255), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[str] = mapped_column(DateTime, nullable=False)
 

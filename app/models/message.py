@@ -14,7 +14,7 @@ class Message(Base):
 
     id: Mapped[str] = mapped_column(String(255), primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)  
-    chat_id: Mapped[int] = mapped_column(ForeignKey("chats.id"), nullable=False)  
+    chat_id: Mapped[str] = mapped_column(ForeignKey("chats.id"), nullable=False)  
     entry: Mapped[str] = mapped_column(Text, nullable=False)
     answer: Mapped[str] = mapped_column(Text, nullable=False)
     tone: Mapped[MessageToneEnum] = mapped_column(Enum(MessageToneEnum), nullable=False)

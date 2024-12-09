@@ -2,6 +2,7 @@ from datetime import datetime
 from mailbox import Message
 import os
 import json
+import string
 import requests
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
@@ -40,7 +41,7 @@ class VectaraClient:
             'x-api-key': self.API_KEY
         }
 
-    def create_corpus(self, db: Session) -> str:
+    def create_corpus(self) -> str:
         """
         Creates a new corpus in Vectara and stores it in the database.
 
@@ -54,7 +55,7 @@ class VectaraClient:
             Exception: If the API call fails or the corpus key is not returned.
         """
 
-        corpus_key = str(datetime.now().timestamp())+random.randint(1, 1000)
+        corpus_key = ''.join(random.choices(string.ascii_letters + string.digits + "_=-", k=32))
 
         payload = json.dumps({
             "key": corpus_key,
@@ -121,8 +122,10 @@ class VectaraClient:
             response = requests.post(f"{self.BASE_URL}/corpora/{corpus_key}/documents",
                                      headers=self._get_headers(), data=payload)
             response.raise_for_status()
+            print("INDEX RESPONSE: ", response.json())
             return {"status": "success", "message": "Document indexed successfully"}
         except Exception as e:
+            print("INDEX RESPONSE: ", response.json())
             return {"status": "error", "message": "Failed to index document", "details": str(e)}
 
     def create_new_turn(self, message: MessageRequest, title: str, corpus_key: str, db: Session) -> Chat:
@@ -199,6 +202,8 @@ class VectaraClient:
             answer = response_data.get('answer', "No answer available")
             chat_id = response_data.get('chat_id', "No chat id available")
             turn_id = response_data.get('turn_id', "No turn id available")
+            
+            print("TURN ID: ", turn_id)
                 
             new_chat = Chat(
                 id = chat_id,
@@ -216,29 +221,34 @@ class VectaraClient:
                 user_id = message.user_id,
                 chat_id = chat_id,
                 entry = message.entry,
-                tone = message.tone,
                 answer = answer,
+                tone = message.tone,
                 answer_type = message.answer_type,
                 created_at = datetime.now()
             )
             
+            print("NEW MESSAGE: ", new_message)
+            
             db.add(new_message)
             db.commit()
             db.refresh(new_message)
-
+            
+            print("RESPONSE VECTARA: ", response.json())
             return new_message
         
         except Exception as e:
+            print("RESPONSE VECTARA: ", response.json())
             return {"status": "error", "message": "Failed to create chat", "details": str(e)}
         
     
     def create_chat(self, message_request: MessageRequest, db: Session):
         
         # Create corpus
-        corpus_key = self.create_corpus(db)
+        corpus_key = self.create_corpus()
         
         # Use Groq
-        query_data = GroqClient.generate_news_query(message_request.entry)
+        groq_client = GroqClient()
+        query_data = groq_client.generate_news_query(user_description=message_request.entry)
         query_content = query_data["query"] 
         query_language = query_data["language"]
         
@@ -248,9 +258,11 @@ class VectaraClient:
         
         bing_scraper = BingNewsWebScraper()
         concatenatedBing = bing_scraper.get_news(query=query_content, language=query_language, max_results=5)
-        
+        print("CONCATED: ", concatenatedBing + concatenatedGoogle)
+        print("QUERY: ", query_content, " , QUERY LANGUAGE: ", query_language)
         # Use Vectara
-        self.index_document(concatenatedBing + concatenatedGoogle, query_language, corpus_key)
+        self.index_document(concatenatedBing, "us", corpus_key)
+        self.index_document(concatenatedGoogle, "us", corpus_key)
         message = self.create_new_turn(message_request, query_content, corpus_key, db)
         return message
     
