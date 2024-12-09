@@ -222,3 +222,21 @@ class VectaraClient:
         self.index_document("tech is the application of scientific knowledge for practical purposes, especially in industry", "us", corpus_key)
         chat = self.create_new_turn(chat, corpus_key,db)
         return chat
+    
+    def get_chat_by_user_id(self, user_id: int, db: Session):
+        try:
+            chats = db.query(Chat).filter(Chat.sender_id == user_id).all()
+            return chats
+        
+        except Exception as e:
+            return {"status": "error", "message": "Failed to get chat history", "details": str(e)}
+
+    
+    def get_chat_by_id(self, chat_id: str, db: Session) -> dict:
+        try:
+            chats = db.query(Chat).filter(Chat.chat_id == chat_id).all()
+            return chats
+        
+        except Exception as e:
+            return {"status": "error", "message": "Failed to get chat by id", "details": str(e)}
+        

@@ -34,13 +34,24 @@ def create_reply(chat_id: str, chat_request: ChatRequest, db: Session = Depends(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@chats.get("/{chat_id}/history", summary="Get chat history", tags=[tag])
+@chats.get("/{chat_id}/history", summary="Get chat history by id", tags=[tag])
 def get_chat_history(chat_id: str, db: Session = Depends(get_db)):
     """
     Retrieve the chat history for the given `chat_id`.
     """
     try:
         history = ChatService.get_chat_history(chat_id, db)
+        return {"success": True, "history": history}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@chats.get("/{user_id}/history", summary="Get chat history by user id", tags=[tag])
+def get_chat_history_by_user_id(user_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve the chat history for the given `user_id`.
+    """
+    try:
+        history = ChatService.get_chat_by_user_id(user_id, db)
         return {"success": True, "history": history}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
