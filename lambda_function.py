@@ -1,7 +1,8 @@
 import os
+import json
 from groq import Groq
 
-# Cliente usando variable de entorno ya establecida
+# Cliente Groq inicializado fuera del handler para reutilizarlo entre invocaciones
 client = Groq(
     api_key=os.environ['GROQ_API_KEY']
 )
@@ -41,7 +42,7 @@ def detect_language(text):
 
 
 def generate_news_query(user_description):
-    # Primero detectamos el idioma para incluirlo en las instrucciones
+    """Genera una query de búsqueda basada en la descripción del usuario."""
     language = detect_language(user_description)
 
     messages = [
@@ -89,6 +90,44 @@ def generate_news_query(user_description):
     }
 
 
-if __name__ == "__main__":
-    result = generate_news_query(input("Describe la noticia que quieres buscar: "))
-    print(result)
+def lambda_handler(event, context):
+    """
+    Handler principal de AWS Lambda.
+    Espera recibir un evento con el siguiente formato:
+    {
+        "description": "texto de la noticia a buscar"
+    }
+    """
+    try:
+        # Verificar si el evento viene de API Gateway
+        if 'body' in event:
+            body = json.loads(event['body'])
+            user_description = body.get('description', '')
+        else:
+            user_description = event.get('description', '')
+
+        if not user_description:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({
+                    'error': 'Se requiere el campo "description" en el cuerpo de la petición'
+                })
+            }
+
+        result = generate_news_query(user_description)
+
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json'
+            },
+            'body': json.dumps(result)
+        }
+
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'error': f'Error interno del servidor: {str(e)}'
+            })
+        }
