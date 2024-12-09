@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import os
 
-# Cargar variables de entorno
+
 SECRET_KEY = os.getenv('SECRET_KEY')
 ALGORITHM = os.getenv('ALGORITHM')
 
@@ -18,9 +18,9 @@ class AuthServices:
     def authenticate_user(email: str, password: str, db: Session):
         user = db.query(User).filter(User.email == email).first()
         if not user:
-            return None  # En lugar de devolver False
+            return None  
         if not bcrypt_context.verify(password, user.password):
-            return None  # En lugar de devolver False
+            return None 
         return user
 
     @staticmethod
@@ -42,7 +42,7 @@ class AuthServices:
         db.commit()
         db.refresh(new_user)
 
-        # Generar el token JWT
+        
         token = AuthServices.create_access_token(new_user.email, new_user.id, new_user.registered, timedelta(hours=1))
         return Token(access_token=token, token_type="bearer")
 
