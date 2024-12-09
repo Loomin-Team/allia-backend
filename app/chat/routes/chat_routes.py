@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
 
 from app.chat.schemas.message_schema import MessageRequest, MessageTurnRequest
 from app.chat.services.chat_services import ChatService
