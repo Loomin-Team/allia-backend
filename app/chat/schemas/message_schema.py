@@ -14,6 +14,14 @@ class MessageRequest(BaseModel):
     class Config:
         orm_mode = True 
         
+class MessageDemoRequest(BaseModel):
+    entry: str
+    tone: MessageToneEnum
+    answer_type: AnswerTypeEnum
+
+    class Config:
+        orm_mode = True 
+        
 class MessageTurnRequest(BaseModel):
     user_id: int
     entry: str

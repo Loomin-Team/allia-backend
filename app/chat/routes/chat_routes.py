@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from app.chat.schemas.message_schema import MessageRequest, MessageTurnRequest
+from app.chat.schemas.message_schema import MessageDemoRequest, MessageRequest, MessageTurnRequest
 from app.chat.services.chat_services import ChatService
 from app.config.db import get_db
 
@@ -17,6 +17,17 @@ def create_chat(message_request: MessageRequest, db: Session = Depends(get_db)):
     """
     try:
         chat = ChatService.create_chat(message_request, db)
+        return {"success": True, "chat": chat}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@chats.post("/chats/demo", summary="Create a new chat demo", tags=[tag])
+def create_chat(message_request: MessageDemoRequest):
+    """
+    Create a new chat demo with the provided entry.
+    """
+    try:
+        chat = ChatService.create_chat_demo(message_request)
         return {"success": True, "chat": chat}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
