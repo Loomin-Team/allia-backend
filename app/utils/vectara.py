@@ -410,12 +410,13 @@ class VectaraClient:
         except Exception as e:
             return {"status": "error", "message": "Failed to create reply", "details": str(e)}
         
-    def get_chat_by_user_id(self, user_id: int, db: Session):
+
+    def get_chats_by_user_id(self, user_id: int, db: Session):
         try:
-            chat = db.query(Chat).join(Message).filter(Message.user_id == user_id).first()
-            return chat
+            chats = db.query(Chat).join(Message).filter(Message.user_id == user_id).order_by(Message.created_at.desc()).all()
+            return chats
         except Exception as e:
-            raise Exception(f"Error al obtener el chat para el usuario {user_id}: {str(e)}")
+            raise Exception(f"Error al obtener los chats para el usuario {user_id}: {str(e)}")    
       
 
     def get_messages_by_chat_id(self, chat_id: str, db: Session):
