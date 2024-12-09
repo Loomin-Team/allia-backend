@@ -1,6 +1,7 @@
 import requests
 
-from app.chat.schemas.message_schema import MessageRequest, MessageTurnRequest
+from app.chat.schemas.chat_schema import ChatResponse
+from app.chat.schemas.message_schema import MessageRequest, MessageResponse, MessageTurnRequest
 from app.utils.vectara import VectaraClient
 
 from app.models.message import Message
@@ -32,4 +33,16 @@ class ChatService:
         vectara_client = VectaraClient()
         chat_history = vectara_client.get_chat_by_user_id(user_id, db)
         return chat_history
+    
+    @staticmethod
+    def get_chats_by_user_id(user_id: int, db: requests.Session):
+        vectara_client = VectaraClient()
+        chats = vectara_client.get_chat_by_user_id(user_id, db)
+        return chats
         
+    @staticmethod
+    def get_messages_by_chat_id(chat_id: str, db: requests.Session):
+        vectara_client = VectaraClient()
+        messages = vectara_client.get_messages_by_chat_id(chat_id, db)
+        return messages
+    
