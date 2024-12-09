@@ -122,10 +122,8 @@ class VectaraClient:
             response = requests.post(f"{self.BASE_URL}/corpora/{corpus_key}/documents",
                                      headers=self._get_headers(), data=payload)
             response.raise_for_status()
-            print("INDEX RESPONSE: ", response.json())
             return {"status": "success", "message": "Document indexed successfully"}
         except Exception as e:
-            print("INDEX RESPONSE: ", response.json())
             return {"status": "error", "message": "Failed to index document", "details": str(e)}
 
     def create_new_turn(self, message: MessageRequest, title: str, corpus_key: str, db: Session) -> Chat:
@@ -171,7 +169,13 @@ class VectaraClient:
             "generation": {
                 "generation_preset_name": "vectara-summary-ext-v1.2.0",
                 "max_used_search_results": 5,
-                "prompt_template": "[\n  {\"role\": \"system\", \"content\": \"You are a helpful search assistant.\"},\n  #foreach ($qResult in $vectaraQueryResults)\n     {\"role\": \"user\", \"content\": \"Given the $vectaraIdxWord[$foreach.index] search result.\"},\n     {\"role\": \"assistant\", \"content\": \"${qResult.getText()}\" },\n  #end\n  {\"role\": \"user\", \"content\": \"Generate a summary for the query '${vectaraQuery}' based on the above results.\"}\n]\n",
+                "prompt_template": f"""
+                [
+                {{"role": "system", "content": "You are a helpful assistant. You will create a response based on the user's query and the tone provided."}},
+                {{"role": "user", "content": "{message.entry}, with a {message.tone.value} tone."}},
+                {{"role": "assistant", "content": "Generate a response with the specified tone: {message.tone.value}"}}
+                ]
+                """,
                 "max_response_characters": 250,
                 "response_language": "auto",
                 "model_parameters": {
@@ -202,8 +206,6 @@ class VectaraClient:
             answer = response_data.get('answer', "No answer available")
             chat_id = response_data.get('chat_id', "No chat id available")
             turn_id = response_data.get('turn_id', "No turn id available")
-            
-            print("TURN ID: ", turn_id)
                 
             new_chat = Chat(
                 id = chat_id,
@@ -227,17 +229,13 @@ class VectaraClient:
                 created_at = datetime.now()
             )
             
-            print("NEW MESSAGE: ", new_message)
-            
             db.add(new_message)
             db.commit()
             db.refresh(new_message)
             
-            print("RESPONSE VECTARA: ", response.json())
             return new_message
         
         except Exception as e:
-            print("RESPONSE VECTARA: ", response.json())
             return {"status": "error", "message": "Failed to create chat", "details": str(e)}
         
     
@@ -258,11 +256,10 @@ class VectaraClient:
         
         bing_scraper = BingNewsWebScraper()
         concatenatedBing = bing_scraper.get_news(query=query_content, language=query_language, max_results=5)
-        print("CONCATED: ", concatenatedBing + concatenatedGoogle)
-        print("QUERY: ", query_content, " , QUERY LANGUAGE: ", query_language)
+        
         # Use Vectara
-        self.index_document(concatenatedBing, "us", corpus_key)
-        self.index_document(concatenatedGoogle, "us", corpus_key)
+        self.index_document(concatenatedBing, query_language, corpus_key)
+        self.index_document(concatenatedGoogle, query_language, corpus_key)
         message = self.create_new_turn(message_request, query_content, corpus_key, db)
         return message
     
@@ -321,7 +318,13 @@ class VectaraClient:
             "generation": {
                 "generation_preset_name": "vectara-summary-ext-v1.2.0",
                 "max_used_search_results": 5,
-                "prompt_template": "[\n  {\"role\": \"system\", \"content\": \"You are a helpful search assistant.\"},\n  #foreach ($qResult in $vectaraQueryResults)\n     {\"role\": \"user\", \"content\": \"Given the $vectaraIdxWord[$foreach.index] search result.\"},\n     {\"role\": \"assistant\", \"content\": \"${qResult.getText()}\" },\n  #end\n  {\"role\": \"user\", \"content\": \"Generate a summary for the query '${vectaraQuery}' based on the above results.\"}\n]\n",
+                "prompt_template": f"""
+                [
+                {{"role": "system", "content": "You are a helpful assistant. You will create a response based on the user's query and the tone provided."}},
+                {{"role": "user", "content": "{message.entry}, with a {message.tone.value} tone."}},
+                {{"role": "assistant", "content": "Generate a response with the specified tone: {message.tone.value}"}}
+                ]
+                """,
                 "max_response_characters": 300,
                 "response_language": "auto",
                 "model_parameters": {
@@ -381,10 +384,28 @@ class VectaraClient:
 
     def create_index_reply(self, message_request: MessageTurnRequest, db: Session):
         try:
+        
             corpus_key = self.get_corpus_key_by_chat_id(message_request.chat_id, db)
-            self.index_document("ocean is a very large expanse of sea, in particular each of the main areas into which the sea is divided geographically.", "us", str(corpus_key))
-            chat = self.create_reply(message_request, corpus_key, db)
-            return chat
+            
+            # Use Groq
+            groq_client = GroqClient()
+            query_data = groq_client.generate_news_query(user_description=message_request.entry)
+            query_content = query_data["query"] 
+            query_language = query_data["language"]
+            
+            # Use Webscrapping
+            google_scraper = GoogleNewsWebScraper()
+            concatenatedGoogle = google_scraper.get_news(query=query_content, language=query_language, max_results=5)
+            
+            bing_scraper = BingNewsWebScraper()
+            concatenatedBing = bing_scraper.get_news(query=query_content, language=query_language, max_results=5)
+            
+            # Use Vectara
+            self.index_document(concatenatedBing, query_language, corpus_key)
+            self.index_document(concatenatedGoogle, query_language, corpus_key)
+            
+            turn = self.create_reply(message_request, corpus_key, db)
+            return turn
         
         except Exception as e:
             return {"status": "error", "message": "Failed to create reply", "details": str(e)}
