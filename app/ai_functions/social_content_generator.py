@@ -105,9 +105,9 @@ class SocialContentGenerator:
     
     def _add_text_to_image(self, image_path: str, texts: List[str]) -> Optional[str]:
         try:
-            # Cargar la fuente IMPACT
+            # Load IMPACT font
             try:
-                font_path = Path('app/ai_functions/assets/fonts/impact.ttf')
+                font_path = Path('ai_functions/assets/fonts/impact.ttf')
                 if not font_path.exists():
                     font_path.parent.mkdir(exist_ok=True)
                     
@@ -121,120 +121,105 @@ class SocialContentGenerator:
                 self.logger.warning(f"No se pudo cargar la fuente IMPACT: {font_error}")
                 return None
 
-            def get_wrapped_text(text: str, font: ImageFont.FreeTypeFont, max_width: int, max_height: int) -> Tuple[str, int]:
-                """Ajusta el texto para que quepa en el ancho y alto máximo"""
-                words = text.split()
-                lines = []
-                current_line = []
-                current_height = 0
-                line_spacing = int(font.size * 1.2)
+            def calculate_font_size(text: str, max_width: int, max_height: int, font_path: str, start_size: int = 200) -> Tuple[int, List[str]]:
+                """Calculate optimal font size and wrapped lines for text to fit within constraints"""
+                size = start_size
+                min_size = 20  # Minimum readable font size
                 
-                for word in words:
-                    test_line = ' '.join(current_line + [word])
-                    bbox = font.getbbox(test_line)
+                while size > min_size:
+                    font = ImageFont.truetype(str(font_path), size)
                     
-                    if bbox[2] <= max_width:
-                        current_line.append(word)
-                    else:
-                        if current_line:
-                            line = ' '.join(current_line)
-                            line_height = font.getbbox(line)[3]
-                            if current_height + line_height + line_spacing > max_height:
-                                # Reducir el texto si excede la altura máxima
-                                if lines:
-                                    lines[-1] = lines[-1] + "..."
-                                break
-                            lines.append(line)
-                            current_height += line_height + line_spacing
-                            current_line = [word]
+                    # Split text into words and try to form lines
+                    words = text.upper().split()
+                    lines = []
+                    current_line = []
+                    total_height = 0
+                    line_spacing = int(size * 0.3)  # 30% of font size for spacing
+                    
+                    for word in words:
+                        test_line = ' '.join(current_line + [word])
+                        bbox = font.getbbox(test_line)
+                        width = bbox[2] - bbox[0]
+                        
+                        if width <= max_width:
+                            current_line.append(word)
                         else:
-                            lines.append(word)
-                            current_height += font.getbbox(word)[3] + line_spacing
-                            current_line = []
+                            if current_line:
+                                lines.append(' '.join(current_line))
+                                current_line = [word]
+                            else:
+                                lines.append(word)
+                    
+                    if current_line:
+                        lines.append(' '.join(current_line))
+                    
+                    # Calculate total height with line spacing
+                    total_height = (font.getbbox('Aj')[3] * len(lines)) + (line_spacing * (len(lines) - 1))
+                    
+                    if total_height <= max_height:
+                        return size, lines
+                    
+                    size = int(size * 0.9)
                 
-                if current_line:
-                    line = ' '.join(current_line)
-                    if current_height + font.getbbox(line)[3] <= max_height:
-                        lines.append(line)
-                
-                return '\n'.join(lines), current_height
+                return min_size, textwrap.wrap(text.upper(), width=20)
 
             def draw_text_with_outline(draw, text: str, x: int, y: int, font: ImageFont.FreeTypeFont, text_color: str = 'white', outline_color: str = 'black'):
-                """Dibuja texto con contorno"""
-                outline_size = max(int(font.size * 0.08), 3)
+                """Draw text with outline for better visibility"""
+                outline_size = max(int(font.size * 0.08), 2)
                 
-                for angle in range(0, 360, 45):
-                    radian = math.radians(angle)
-                    offset_x = int(outline_size * math.cos(radian))
-                    offset_y = int(outline_size * math.sin(radian))
-                    
-                    draw.text(
-                        (x + offset_x, y + offset_y),
-                        text,
-                        font=font,
-                        fill=outline_color
-                    )
+                # Draw outline
+                for dx in range(-outline_size, outline_size + 1, 2):
+                    for dy in range(-outline_size, outline_size + 1, 2):
+                        draw.text((x + dx, y + dy), text, font=font, fill=outline_color)
                 
+                # Draw main text
                 draw.text((x, y), text, font=font, fill=text_color)
 
-            # Abrir imagen original
+            # Open original image
             image = Image.open(image_path)
             draw = ImageDraw.Draw(image)
             width, height = image.size
             
-            # Configurar márgenes y tamaños
+            # Configure margins and sizes
             margin_x = int(width * 0.05)
             margin_y = int(height * 0.05)
             available_width = width - (2 * margin_x)
+            max_text_height = int(height * 0.3)  # Increased to 30% of image height
             
-            # Altura máxima para cada sección de texto (25% de la altura total)
-            max_text_height = int(height * 0.25)
-            
-            # Calcular tamaño de fuente inicial
-            base_font_size = int(height * 0.15)
-            min_font_size = base_font_size
-            
-            # Ajustar tamaño de fuente para ambos textos
-            for text in texts:
-                size = base_font_size
-                while size > 10:
-                    test_font = ImageFont.truetype(str(font_path), size)
-                    wrapped, text_height = get_wrapped_text(
-                        text.upper(), 
-                        test_font, 
-                        available_width,
-                        max_text_height
-                    )
-                    
-                    if text_height <= max_text_height:
-                        break
-                    size = int(size * 0.9)
-                min_font_size = min(min_font_size, size)
-            
-            # Usar el mismo tamaño de fuente para ambos textos
-            font = ImageFont.truetype(str(font_path), min_font_size)
-            
-            # Dibujar textos
+            # Process each text block (top and bottom)
             y_positions = [margin_y, height - max_text_height - margin_y]
             
             for text, y_base in zip(texts, y_positions):
-                wrapped_text, text_height = get_wrapped_text(
-                    text.upper(),
-                    font,
+                # Calculate optimal font size and wrap text
+                font_size, lines = calculate_font_size(
+                    text,
                     available_width,
-                    max_text_height
+                    max_text_height,
+                    font_path
                 )
                 
-                bbox = draw.textbbox((0, 0), wrapped_text, font=font)
-                text_width = bbox[2] - bbox[0]
-                text_height = bbox[3] - bbox[1]
+                font = ImageFont.truetype(str(font_path), font_size)
+                line_spacing = int(font_size * 0.3)
                 
-                x_pos = (width - text_width) / 2
-                y_pos = y_base
+                # Calculate total text block height
+                total_height = (font.getbbox('Aj')[3] * len(lines)) + (line_spacing * (len(lines) - 1))
                 
-                draw_text_with_outline(draw, wrapped_text, x_pos, y_pos, font)
+                # Adjust vertical position for bottom text to align with bottom margin
+                if y_base > height / 2:
+                    y_base = height - total_height - margin_y
+                
+                # Draw each line
+                current_y = y_base
+                for line in lines:
+                    # Center text horizontally
+                    bbox = font.getbbox(line)
+                    text_width = bbox[2] - bbox[0]
+                    x_pos = (width - text_width) / 2
+                    
+                    draw_text_with_outline(draw, line, x_pos, current_y, font)
+                    current_y += font.getbbox('Aj')[3] + line_spacing
             
-            # Guardar resultado
+            # Save result
             output_path = f"output/meme_{os.urandom(4).hex()}.png"
             image.save(output_path, quality=95)
             return output_path
