@@ -219,27 +219,23 @@ class VectaraClient:
             db.commit()
             db.refresh(new_chat)
 
-            if message.answer_type == AnswerTypeEnum.Video.value:
-                payload = {
-                    "user_prompt": message.entry,
-                    "context":  concat
-                }
-                
-                lambda_response = requests.post(f"{self.VIDEO_URL}/generate/video", data=payload)
+            new_payload = {
+                "user_prompt": message.entry,
+                "context": concat
+            }
 
+            if message.answer_type == AnswerTypeEnum.Video:
+                print("Video being processed...")
+                VIDEO_URL = os.getenv("VIDEO_URL")
+                lambda_response = requests.post(f"{VIDEO_URL}/generate/video", data=new_payload)
                 answer = lambda_response.json().get("s3_url", "No video available")
 
-            elif message.answer_type == AnswerTypeEnum.Meme.value:
-                payload = {
-                    "user_prompt": message.entry,
-                    "context":  concat
-                }
+            elif message.answer_type == AnswerTypeEnum.Meme:
+                print("Meme being processed...")
+                MEME_URL = os.getenv("MEME_URL")
+                lambda_response = requests.post(f"{MEME_URL}/generate/meme", data=new_payload)
+                answer = lambda_response.json().get("s3_url", "No meme available")
 
-                lambda_response = requests.post(f"{self.MEME_URL}/generate/meme", data=payload)
-                print(lambda_response.json())
-
-                answer = lambda_response.json().get("s3_url", "No video available")
-                print(answer)
             
             new_message = Message(
                 id = turn_id,
@@ -360,25 +356,23 @@ class VectaraClient:
             turn_id = response_data.get('turn_id', "No turn id available")
 
             
-            if message.answer_type == "Video":
-                payload = {
-                    "user_prompt": message.entry,
-                    "context":  concat
-                }
-                
-                lambda_response = requests.post(f"{self.VIDEO_URL}/generate/video", data=payload)
+            new_payload = {
+                "user_prompt": message.entry,
+                "context": concat
+            }
 
+            if message.answer_type == AnswerTypeEnum.Video:
+                print("Video being processed...")
+                VIDEO_URL = os.getenv("VIDEO_URL")
+                lambda_response = requests.post(f"{VIDEO_URL}/generate/video", data=new_payload)
                 answer = lambda_response.json().get("s3_url", "No video available")
 
-            elif message.answer_type == "Meme":
-                payload = {
-                    "user_prompt": message.entry,
-                    "context":  concat
-                }
+            elif message.answer_type == AnswerTypeEnum.Meme:
+                print("Meme being processed...")
+                MEME_URL = os.getenv("MEME_URL")
+                lambda_response = requests.post(f"{MEME_URL}/generate/meme", data=new_payload)
+                answer = lambda_response.json().get("s3_url", "No meme available")
 
-                lambda_response = requests.post(f"{self.MEME_URL}/generate/meme", data=payload)
-
-                answer = lambda_response.json().get("s3_url", "No video available")
             
             new_message = Message(
                 id = turn_id,

@@ -32,6 +32,8 @@ services:
       S3_VIDEOS_FOLDER: videos
       S3_IMAGES_FOLDER: imagenes
       S3_MEMES_FOLDER: memes
+      VIDEO_URL: http://localhost:8000
+      MEME_URL: http://localhost:8000
     depends_on:
       - mysql
 
