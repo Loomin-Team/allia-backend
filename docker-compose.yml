@@ -1,22 +1,58 @@
 services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    networks:
+      - app_network
+    environment:
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: allia_db
+      SECRET_KEY: "197b2c371eas312ze#@1ssdsasd1123"
+      ALGORITHM: "HS256"
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      VECTARA_API_KEY: "zut_o8swFv-LgolgtwAzocKgRUIYnTFA1Px25AmR_w"
+      VECTARA_CORPUS_KEY: "zqt_o8swFuvFKg_Qdixscv7ks_uLONUTfqw8egpSdw"
+      VECTARA_CUSTOMER_ID: "2748002326"
+      VECTARA_CORPUS_ID: "3"
+      SERPAPI_API_KEY: "dc8e69ee1824ddc6631d536968c93cf742d2d6da17ce7415069ad20a439bc43c"
+      GROQ_API_KEY: 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
+      OPENAI_API_KEY: sk-pbh3HjfB9obeAwBXG1al0-18T2NXlppFc2Gv1qTo1lT3BlbkFJcGoczyHcuZSeLC6_Tn_i6g1nWoyUX_Z1vcOrCe614A
+      AWS_ACCESS_KEY_ID: AKIATCKAPYI76VBV2NPH
+      AWS_SECRET_ACCESS_KEY: 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
+      AWS_REGION: us-east-1
+      S3_BUCKET: allia
+      S3_VIDEOS_FOLDER: videos
+      S3_IMAGES_FOLDER: imagenes
+      S3_MEMES_FOLDER: memes
+    depends_on:
+      - mysql
+
   mysql:
     image: mysql:latest
     container_name: mysql_container
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root       
-      MYSQL_DATABASE: allia_db        
-      MYSQL_USER: allia_user           
-      MYSQL_PASSWORD: allia_password   
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: allia_db
+      MYSQL_USER: allia_user
+      MYSQL_PASSWORD: allia_password
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      - mysql_network
+      - app_network
 
 volumes:
   mysql_data:
 
 networks:
-  mysql_network:
+  app_network:

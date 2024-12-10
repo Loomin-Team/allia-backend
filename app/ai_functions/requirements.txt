@@ -1,0 +1,11 @@
+openai 
+pillow 
+requests 
+gTTS 
+moviepy 
+keybert
+boto3
+fastapi
+uvicorn
+colorama
+srt
