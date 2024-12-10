@@ -1,0 +1,5 @@
+2024-12-09 20:11:30,159 [INFO] __init__:18 - Iniciando VideoAssembler
+2024-12-09 20:11:30,159 [DEBUG] _ensure_directories:74 - Directorio asegurado: temp
+2024-12-09 20:11:30,159 [DEBUG] _ensure_directories:74 - Directorio asegurado: output
+2024-12-09 20:11:30,159 [DEBUG] _ensure_directories:74 - Directorio asegurado: logs
+2024-12-09 20:11:30,159 [INFO] __init__:26 - Usando cliente OpenAI proporcionado
