@@ -3,27 +3,24 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import asyncio
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, List
-from colorama import Fore, Style
+from typing import Optional, Dict
 from openai import OpenAI
-from tqdm import tqdm
 from dotenv import load_dotenv
 import boto3
 from botocore.exceptions import ClientError
 
 # Import database components
-from app.config.db import SessionLocal, create_all_tables
+from app.config.db import create_all_tables
 from app.router import routes
 
 # Import content generators
-from ai_functions.social_content_generator import SocialContentGenerator
-from ai_functions.video_content_generator import ContentGenerator
-from ai_functions.video_assembler import VideoAssembler
-from ai_functions.themed_image_generator import ThemedImageGenerator
+from app.ai_functions.social_content_generator import SocialContentGenerator
+from app.ai_functions.video_content_generator import ContentGenerator
+from app.ai_functions.video_assembler import VideoAssembler
+from app.ai_functions.themed_image_generator import ThemedImageGenerator
 
 # Load environment variables
 load_dotenv()

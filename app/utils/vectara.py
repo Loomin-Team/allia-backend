@@ -10,6 +10,7 @@ from app.models.chat import Chat
 from app.models.message import Message
 from app.profiles.services.profiles_services import ProfileService  
 import random
+from app.enums.answer_type_enum import AnswerTypeEnum
 
 from app.utils.groq import GroqClient
 from app.utils.webscrapping.bing_scraper import BingNewsWebScraper
@@ -218,7 +219,7 @@ class VectaraClient:
             db.commit()
             db.refresh(new_chat)
 
-            if message.answer_type == "Video":
+            if message.answer_type == AnswerTypeEnum.Video.value:
                 payload = {
                     "user_prompt": message.entry,
                     "context":  concat
@@ -228,15 +229,17 @@ class VectaraClient:
 
                 answer = lambda_response.json().get("s3_url", "No video available")
 
-            elif message.answer_type == "Meme":
+            elif message.answer_type == AnswerTypeEnum.Meme.value:
                 payload = {
                     "user_prompt": message.entry,
                     "context":  concat
                 }
 
                 lambda_response = requests.post(f"{self.MEME_URL}/generate/meme", data=payload)
+                print(lambda_response.json())
 
                 answer = lambda_response.json().get("s3_url", "No video available")
+                print(answer)
             
             new_message = Message(
                 id = turn_id,
