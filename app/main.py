@@ -16,8 +16,8 @@ import boto3
 from botocore.exceptions import ClientError
 
 # Import database components
-#from app.config.db import SessionLocal, create_all_tables
-#from app.router import routes
+from app.config.db import SessionLocal, create_all_tables
+from app.router import routes
 
 # Import content generators
 from ai_functions.social_content_generator import SocialContentGenerator
@@ -41,13 +41,13 @@ app.add_middleware(
 )
 
 # Include database routes
-#app.include_router(routes)
+app.include_router(routes)
 
 # Create database tables
-#try:
-#    create_all_tables()
-#except Exception as e:
-#    raise HTTPException(status_code=500, detail=f"Error al crear tablas: {e}")
+try:
+    create_all_tables()
+except Exception as e:
+    raise HTTPException(status_code=500, detail=f"Error al crear tablas: {e}")
 
 class ContentRequest(BaseModel):
     user_prompt: str
