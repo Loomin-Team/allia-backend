@@ -16,14 +16,14 @@ import boto3
 from botocore.exceptions import ClientError
 
 # Import database components
-from config.db import SessionLocal, create_all_tables
-from router import routes
+from app.config.db import SessionLocal, create_all_tables
+from app.router import routes
 
 # Import content generators
-from social_content_generator import SocialContentGenerator
-from video_content_generator import ContentGenerator
-from video_assembler import VideoAssembler
-from themed_image_generator import ThemedImageGenerator
+from ai_functions.social_content_generator import SocialContentGenerator
+from ai_functions.video_content_generator import ContentGenerator
+from ai_functions.video_assembler import VideoAssembler
+from ai_functions.themed_image_generator import ThemedImageGenerator
 
 # Load environment variables
 load_dotenv()
