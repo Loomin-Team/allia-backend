@@ -449,7 +449,7 @@ class VectaraClient:
             raise Exception(f"Error al obtener los mensajes para el chat {chat_id}: {str(e)}")
             
             
-    def create_new_turn_demo(self, message: MessageDemoRequest, corpus_key: str) -> dict:
+    def create_new_turn_demo(self, message: MessageDemoRequest, corpus_key: str, concat: str) -> dict:
         """
         Creates a new chat demo with the specified MessageDemoRequest and corpus.
 
@@ -529,6 +529,26 @@ class VectaraClient:
             answer = response_data.get('answer', "No answer available")
             chat_id = response_data.get('chat_id', "No chat id available")
             turn_id = response_data.get('turn_id', "No turn id available")
+
+            new_payload = {
+                "user_prompt": message.entry,
+                "context": concat
+            }
+            
+            if message.answer_type == AnswerTypeEnum.Video:
+                print("Video being processed...")
+                VIDEO_URL = os.getenv("VIDEO_URL")
+                lambda_response = requests.post(f"{VIDEO_URL}/generate/video", json=new_payload)
+                answer = lambda_response.json().get("s3_url", "No video available")
+
+            elif message.answer_type == AnswerTypeEnum.Meme:
+                print("Meme being processed...")
+                MEME_URL = os.getenv("MEME_URL")
+                lambda_response = requests.post(f"{MEME_URL}/generate/meme", json=new_payload)
+                print(lambda_response.json())
+                answer = lambda_response.json().get("s3_url", "No meme available")
+
+
             
             formatted_response = {
                 "id": turn_id,
@@ -562,9 +582,11 @@ class VectaraClient:
         
         bing_scraper = BingNewsWebScraper()
         concatenatedBing = bing_scraper.get_news(query=query_content, language=query_language, max_results=5)
+
+        concat = concatenatedGoogle + concatenatedBing
         
         # Use Vectara
         self.index_document(concatenatedBing, query_language, corpus_key)
         self.index_document(concatenatedGoogle, query_language, corpus_key)
-        message = self.create_new_turn_demo(message_request, corpus_key)
+        message = self.create_new_turn_demo(message_request, corpus_key, concat)
         return message
