@@ -126,7 +126,7 @@ class VectaraClient:
         except Exception as e:
             return {"status": "error", "message": "Failed to index document", "details": str(e)}
 
-    def create_new_turn(self, message: MessageRequest, title: str, corpus_key: str, db: Session) -> Chat:
+    def create_new_turn(self, message: MessageRequest, title: str, corpus_key: str, db: Session, concat) -> Chat:
         """
         Creates a new chat with the specified query and corpus.
 
@@ -217,6 +217,26 @@ class VectaraClient:
             db.add(new_chat)
             db.commit()
             db.refresh(new_chat)
+
+            if message.answer_type == "Video":
+                payload = {
+                    "user_prompt": message.entry,
+                    "context":  concat
+                }
+                
+                lambda_response = requests.post(f"{self.VIDEO_URL}/generate/video", data=payload)
+
+                answer = lambda_response.json().get("s3_url", "No video available")
+
+            elif message.answer_type == "Meme":
+                payload = {
+                    "user_prompt": message.entry,
+                    "context":  concat
+                }
+
+                lambda_response = requests.post(f"{self.MEME_URL}/generate/meme", data=payload)
+
+                answer = lambda_response.json().get("s3_url", "No video available")
             
             new_message = Message(
                 id = turn_id,
@@ -260,10 +280,13 @@ class VectaraClient:
         # Use Vectara
         self.index_document(concatenatedBing, query_language, corpus_key)
         self.index_document(concatenatedGoogle, query_language, corpus_key)
-        message = self.create_new_turn(message_request, query_content, corpus_key, db)
+        concat = concatenatedGoogle + concatenatedBing
+        message = self.create_new_turn(message_request, query_content, corpus_key, db, concat)
+
+
         return message
     
-    def create_reply(self, message: MessageTurnRequest, corpus_key: str, db: Session):
+    def create_reply(self, message: MessageTurnRequest, corpus_key: str, db: Session, concat):
         
         payload = json.dumps({
             "query": message.entry,
@@ -332,6 +355,27 @@ class VectaraClient:
             response_data = response.json()
             answer = response_data.get('answer', "No answer available")
             turn_id = response_data.get('turn_id', "No turn id available")
+
+            
+            if message.answer_type == "Video":
+                payload = {
+                    "user_prompt": message.entry,
+                    "context":  concat
+                }
+                
+                lambda_response = requests.post(f"{self.VIDEO_URL}/generate/video", data=payload)
+
+                answer = lambda_response.json().get("s3_url", "No video available")
+
+            elif message.answer_type == "Meme":
+                payload = {
+                    "user_prompt": message.entry,
+                    "context":  concat
+                }
+
+                lambda_response = requests.post(f"{self.MEME_URL}/generate/meme", data=payload)
+
+                answer = lambda_response.json().get("s3_url", "No video available")
             
             new_message = Message(
                 id = turn_id,
@@ -378,12 +422,14 @@ class VectaraClient:
             
             bing_scraper = BingNewsWebScraper()
             concatenatedBing = bing_scraper.get_news(query=query_content, language=query_language, max_results=5)
+
+            concat = concatenatedGoogle + concatenatedBing
             
             # Use Vectara
             self.index_document(concatenatedBing, query_language, corpus_key)
             self.index_document(concatenatedGoogle, query_language, corpus_key)
             
-            turn = self.create_reply(message_request, corpus_key, db)
+            turn = self.create_reply(message_request, corpus_key, db, concat)
             return turn
         
         except Exception as e:
