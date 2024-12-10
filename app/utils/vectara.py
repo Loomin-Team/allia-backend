@@ -399,7 +399,7 @@ class VectaraClient:
 
     def get_messages_by_chat_id(self, chat_id: str, db: Session):
         try:
-            messages = db.query(Message).filter(Message.chat_id == chat_id).all()
+            messages = db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.created_at.asc()).all()
             return messages
         except Exception as e:
             raise Exception(f"Error al obtener los mensajes para el chat {chat_id}: {str(e)}")
