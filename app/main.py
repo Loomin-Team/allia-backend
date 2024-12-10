@@ -17,10 +17,10 @@ from app.config.db import create_all_tables
 from app.router import routes
 
 # Import content generators
-from ai_functions.social_content_generator import SocialContentGenerator
-from ai_functions.video_content_generator import ContentGenerator
-from ai_functions.video_assembler import VideoAssembler
-from ai_functions.themed_image_generator import ThemedImageGenerator
+from app.ai_functions.social_content_generator import SocialContentGenerator
+from app.ai_functions.video_content_generator import ContentGenerator
+from app.ai_functions.video_assembler import VideoAssembler
+from app.ai_functions.themed_image_generator import ThemedImageGenerator
 
 # Load environment variables
 load_dotenv()
@@ -178,7 +178,7 @@ class ContentAnalyzer:
     def _get_defaults(self, content_type: str) -> Dict:
         defaults = {
             'video': {
-                'num_images': 4,
+                'num_images': 2,
                 'voice': 'nova',
                 'style': 'realistic photographic'
             },

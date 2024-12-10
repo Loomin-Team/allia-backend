@@ -227,13 +227,14 @@ class VectaraClient:
             if message.answer_type == AnswerTypeEnum.Video:
                 print("Video being processed...")
                 VIDEO_URL = os.getenv("VIDEO_URL")
-                lambda_response = requests.post(f"{VIDEO_URL}/generate/video", data=new_payload)
+                lambda_response = requests.post(f"{VIDEO_URL}/generate/video", json=new_payload)
                 answer = lambda_response.json().get("s3_url", "No video available")
 
             elif message.answer_type == AnswerTypeEnum.Meme:
                 print("Meme being processed...")
                 MEME_URL = os.getenv("MEME_URL")
-                lambda_response = requests.post(f"{MEME_URL}/generate/meme", data=new_payload)
+                lambda_response = requests.post(f"{MEME_URL}/generate/meme", json=new_payload)
+                print(lambda_response.json())
                 answer = lambda_response.json().get("s3_url", "No meme available")
 
             
