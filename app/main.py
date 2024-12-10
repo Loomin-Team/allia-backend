@@ -17,10 +17,10 @@ from app.config.db import create_all_tables
 from app.router import routes
 
 # Import content generators
-from app.ai_functions.social_content_generator import SocialContentGenerator
-from app.ai_functions.video_content_generator import ContentGenerator
-from app.ai_functions.video_assembler import VideoAssembler
-from app.ai_functions.themed_image_generator import ThemedImageGenerator
+from ai_functions.social_content_generator import SocialContentGenerator
+from ai_functions.video_content_generator import ContentGenerator
+from ai_functions.video_assembler import VideoAssembler
+from ai_functions.themed_image_generator import ThemedImageGenerator
 
 # Load environment variables
 load_dotenv()
@@ -40,7 +40,7 @@ app.add_middleware(
 # Include database routes
 app.include_router(routes)
 
-# Create database tables
+#Create database tables
 try:
     create_all_tables()
 except Exception as e:
@@ -140,7 +140,7 @@ class ContentAnalyzer:
             }
             
             response = self.client.chat.completions.create(
-                model="gpt-4-mini",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": system_prompts[content_type]},
                     {"role": "user", "content": f"""
@@ -243,6 +243,7 @@ class MediaCreator:
             
             self.logger.info("🎥 Generating video...")
             content = self.content_generator.generate_complete_content(
+                context=contexto,  # Add this line to pass the context
                 num_images=params['num_images'],
                 voice=params['voice'],
                 image_style=params['style']

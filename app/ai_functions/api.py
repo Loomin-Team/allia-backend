@@ -119,7 +119,7 @@ class ContentAnalyzer:
             }
             
             response = self.client.chat.completions.create(
-                model="gpt-4-mini",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": system_prompts[content_type]},
                     {"role": "user", "content": f"""

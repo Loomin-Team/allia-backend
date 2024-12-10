@@ -42,7 +42,7 @@ class SocialTextGenerator:
         """Limpia y optimiza el contexto usando IA"""
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": """
                     Eres un experto en análisis y síntesis de información.
@@ -100,7 +100,7 @@ class SocialTextGenerator:
                 }
                 
                 response = self.client.chat.completions.create(
-                    model="gpt-4",
+                    model="gpt-4o-mini",
                     messages=[
                         {"role": "system", "content": f"""
                         Genera contenido optimizado para {platform} con estas características:
