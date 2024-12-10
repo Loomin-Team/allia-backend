@@ -10,6 +10,7 @@ chats = APIRouter()
 tag = "Chats"
 endpoint = "/chats"
 
+
 @chats.post("/chats", summary="Create a new chat", tags=[tag])
 def create_chat(message_request: MessageRequest, db: Session = Depends(get_db)):
     """
@@ -20,7 +21,8 @@ def create_chat(message_request: MessageRequest, db: Session = Depends(get_db)):
         return {"success": True, "chat": chat}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
+
 @chats.post("/chats/demo", summary="Create a new chat demo", tags=[tag])
 def create_chat(message_request: MessageDemoRequest):
     """
@@ -43,7 +45,7 @@ def create_reply(turn_request: MessageTurnRequest, db: Session = Depends(get_db)
         return {"success": True, "reply": reply}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 
 @chats.get("/{user_id}", summary="Get chats by user id", tags=[tag])
 def get_chats_by_user_id(user_id: int, db: Session = Depends(get_db)):
@@ -51,14 +53,19 @@ def get_chats_by_user_id(user_id: int, db: Session = Depends(get_db)):
     Retrieve chats for the given `user_id`.
     """
     try:
+        print(f"Fetching chats for user_id: {user_id}")
         chats = ChatService.get_chats_by_user_id(user_id, db)
         if not chats:
-            raise HTTPException(status_code=404, detail="No chats found for this user")
+            print("No chats found for this user.")
+            raise HTTPException(
+                status_code=404, detail="No chats found for this user")
 
         return {"success": True, "chats": chats}
 
     except Exception as e:
+        print(f"Error fetching chats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @chats.get("/messages/{chat_id}", summary="Get messages by chat id", tags=[tag])
 def get_messages_by_chat_id(chat_id: str, db: Session = Depends(get_db)):
@@ -68,9 +75,10 @@ def get_messages_by_chat_id(chat_id: str, db: Session = Depends(get_db)):
     try:
         messages = ChatService.get_messages_by_chat_id(chat_id, db)
         if not messages:
-            raise HTTPException(status_code=404, detail="No messages found for this chat")
+            raise HTTPException(
+                status_code=404, detail="No messages found for this chat")
 
         return {"success": True, "messages": messages}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))    
+        raise HTTPException(status_code=500, detail=str(e))
