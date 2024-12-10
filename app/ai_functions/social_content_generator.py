@@ -107,7 +107,7 @@ class SocialContentGenerator:
         try:
             # Load IMPACT font
             try:
-                font_path = Path('ai_functions/assets/fonts/impact.ttf')
+                font_path = Path('app/ai_functions/assets/fonts/impact.ttf')
                 if not font_path.exists():
                     font_path.parent.mkdir(exist_ok=True)
                     
