@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, List
+import colorama
 from colorama import Fore, Style
 from openai import OpenAI
 from tqdm import tqdm
@@ -350,4 +351,4 @@ async def generate_images(request: ContentRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8002)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

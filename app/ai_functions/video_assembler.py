@@ -18,7 +18,7 @@ class VideoAssembler:
         self.logger.info("Iniciando VideoAssembler")
         
         try:
-            self.font_path = Path('assets/fonts/OpenSans-Bold.ttf')
+            self.font_path = Path('app/ai_functions/assets/fonts/OpenSans-Bold.ttf')
             self._ensure_directories()
             
             if openai_client:

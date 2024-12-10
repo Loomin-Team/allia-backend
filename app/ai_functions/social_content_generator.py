@@ -107,7 +107,7 @@ class SocialContentGenerator:
         try:
             # Cargar la fuente IMPACT
             try:
-                font_path = Path('assets/fonts/impact.ttf')
+                font_path = Path('app/ai_functions/assets/fonts/impact.ttf')
                 if not font_path.exists():
                     font_path.parent.mkdir(exist_ok=True)
                     

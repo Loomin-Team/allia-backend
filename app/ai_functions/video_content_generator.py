@@ -1,4 +1,3 @@
-# video_content_generator.py
 from openai import OpenAI
 import requests
 from keybert import KeyBERT
@@ -138,7 +137,7 @@ class ContentGenerator:
         except Exception as e:
             self.logger.error(f"Error generando párrafos narrativos: {str(e)}")
             raise
-    
+
     def _create_audio(self, text: str, voice: str = 'nova') -> Optional[str]:
         """
         Genera audio a partir del texto con la voz seleccionada
@@ -183,7 +182,6 @@ class ContentGenerator:
                 self.logger.warning(f"Estilo {image_style} no válido. Usando estilo realista por defecto.")
                 image_style = 'realista fotográfico'
                 
-            # Crear un prompt más detallado y contextual
             prompt = f"""
             Genera una imagen en {image_style} que ilustre específicamente este texto:
             {context}
@@ -203,7 +201,6 @@ class ContentGenerator:
             - El tono y ambiente de la imagen debe coincidir con la narrativa del texto
             """
             
-            # Generar la imagen con el prompt mejorado
             response = self.client.images.generate(
                 model="dall-e-3",
                 prompt=prompt,
@@ -228,11 +225,12 @@ class ContentGenerator:
             self.logger.error(f"Error generando imagen: {str(e)}")
             return None
 
-    def generate_complete_content(self, num_images: int = 4, voice: str = 'nova', image_style: str = 'realista fotográfico') -> Dict[str, Union[List[str], str]]:
+    def generate_complete_content(self, context: str, num_images: int = 4, voice: str = 'nova', image_style: str = 'realista fotográfico') -> Dict[str, Union[List[str], str]]:
         """
         Genera todo el contenido necesario para el video de forma optimizada
         
         Args:
+            context: Contexto proporcionado para la generación
             num_images: Número de imágenes a generar (default: 4)
             voice: Modelo de voz a usar (default: 'nova')
             image_style: Estilo visual para las imágenes (default: 'realista fotográfico')
@@ -241,21 +239,16 @@ class ContentGenerator:
             Dict con párrafos, rutas de imágenes y ruta del audio
         """
         try:
-            with open('contexto.txt', 'r', encoding='utf-8') as f:
-                full_context = f.read().strip()
-            
             self.logger.info("Resumiendo contexto...")
-            summarized_context = self._summarize_context(full_context)
+            summarized_context = self._summarize_context(context)
             
             self.logger.info("Generando narrativa...")
             paragraphs = self._generate_story_paragraphs(summarized_context, num_images)
             
-            # Mejorar la extracción de keywords usando más contexto
             keywords = []
             for paragraph in paragraphs:
-                # Extraer más keywords y combinarlas para un mejor contexto
                 kws = self._extract_keywords(paragraph, 3)
-                keywords.append(" y ".join(kws))  # Combinar keywords para más contexto
+                keywords.append(" y ".join(kws))
             
             with ThreadPoolExecutor() as executor:
                 image_futures = [
@@ -263,7 +256,7 @@ class ContentGenerator:
                         self._generate_image, 
                         keyword, 
                         idx, 
-                        paragraph,  # Usar el párrafo completo como contexto
+                        paragraph,
                         image_style
                     )
                     for idx, (keyword, paragraph) in enumerate(zip(keywords, paragraphs))
